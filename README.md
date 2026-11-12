@@ -1,3 +1,7 @@
+## Based on Orchard
+
+ContainerDesk is based on [Orchard](https://github.com/andrew-waters/orchard) by Andrew Waters and contributors. Orchard is distributed under the MIT License; its copyright notice and license are retained in [LICENSE](LICENSE).
+
 ![Banner - Orchard](assets/banner.png)
 
 [![GitHub stars](https://img.shields.io/github/stars/andrew-waters/orchard?color=e8590c&label=stars)](https://github.com/andrew-waters/orchard/stargazers)

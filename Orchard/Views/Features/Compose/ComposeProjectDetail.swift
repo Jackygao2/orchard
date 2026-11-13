@@ -5,6 +5,7 @@ import SwiftUI
 
 struct ComposeProjectDetailView: View {
     @EnvironmentObject var composeService: ComposeService
+    @EnvironmentObject var alertCenter: AlertCenter
     @EnvironmentObject var containerListService: ContainerListService
     @EnvironmentObject var networkService: NetworkService
     @EnvironmentObject var volumeService: VolumeService
@@ -104,12 +105,20 @@ struct ComposeProjectDetailView: View {
             // The path is long and rarely read, so the header offers it rather than showing it.
             if let url = project.fileURL {
                 Button {
-                    NSWorkspace.shared.activateFileViewerSelecting([url])
+                    ComposeFileActions.reveal(url, alertCenter: alertCenter)
                 } label: {
                     Label("Show in Finder", systemImage: "folder")
                 }
                 .disabled(composeService.fileIsMissing(for: project))
                 .help(url.path)
+                Button("Open in Editor") {
+                    ComposeFileActions.open(url, alertCenter: alertCenter)
+                }
+                .disabled(composeService.fileIsMissing(for: project))
+                Button("Open With…") {
+                    ComposeFileActions.chooseEditor(for: url, alertCenter: alertCenter)
+                }
+                .disabled(composeService.fileIsMissing(for: project))
                 Button {
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(url.path, forType: .string)

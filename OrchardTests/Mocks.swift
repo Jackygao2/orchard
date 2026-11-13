@@ -564,7 +564,7 @@ func makeContainer(
     imageReference: String = "nginx:latest", imageDigest: String = "sha256:abc",
     cpus: Int = 1, memoryInBytes: Int = 1024,
     environment: [String] = [], mountsJSON: String = "[]", networkName: String? = nil,
-    networkAliases: [String: [String]]? = nil
+    networkAliases: [String: [String]]? = nil, publishedPortsJSON: String = "[]"
 ) throws -> Container {
     let labelsJSON = labels.isEmpty
         ? "{}"
@@ -589,7 +589,7 @@ func makeContainer(
         "rosetta": false,
         "labels": \(labelsJSON),
         "sysctls": {},
-        "publishedPorts": [],
+        "publishedPorts": \(publishedPortsJSON),
         "mounts": \(mountsJSON),
         "platform": \(fixturePlatformJSON),
         "image": \(fixtureImageJSON(imageReference, digest: imageDigest)),

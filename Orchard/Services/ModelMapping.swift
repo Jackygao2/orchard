@@ -9,7 +9,8 @@ func mapContainer(_ snapshot: ContainerSnapshot) -> Container {
     Container(
         status: snapshot.status.rawValue,
         configuration: mapContainerConfiguration(snapshot.configuration),
-        networks: snapshot.networks.map { mapAttachment($0) }
+        networks: snapshot.networks.map { mapAttachment($0) },
+        startedDate: snapshot.startedDate
     )
 }
 

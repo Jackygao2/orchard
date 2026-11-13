@@ -281,6 +281,10 @@ struct ContainerDetailView: View {
                             "\(port.hostAddress!):\(port.hostPort):\(port.containerPort)/\(port.transportProtocol)" :
                             "\(port.hostPort):\(port.containerPort)/\(port.transportProtocol)"
                         CopyableInfoRow(label: "Port", value: portSpec, copyValue: portSpec)
+                        if container.status.lowercased() == "running", let url = port.browserURL {
+                            Link("Open \(String(port.hostPort)) in Browser", destination: url)
+                                .accessibilityIdentifier("open-port-\(port.uniqueID)")
+                        }
                     }
                 }
             }

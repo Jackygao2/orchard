@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import Darwin
 
 // MARK: - Sort Options
 
@@ -7,12 +8,14 @@ enum ContainerSortOption: String, CaseIterable {
     case name = "name"
     case status = "status"
     case image = "image"
+    case uptime = "uptime"
 
     var label: String {
         switch self {
         case .name: return "Name"
         case .status: return "Status"
         case .image: return "Image"
+        case .uptime: return "Uptime"
         }
     }
 }
@@ -37,11 +40,41 @@ struct Container: Codable, Equatable {
     let status: String
     let configuration: ContainerConfiguration
     let networks: [Network]
+    var startedDate: Date? = nil
+
+    var openablePorts: [PublishedPort] {
+        guard status.lowercased() == "running" else { return [] }
+        return configuration.publishedPorts.filter { $0.browserURL != nil }
+    }
+
+    func uptime(at now: Date = Date()) -> TimeInterval? {
+        guard status.lowercased() == "running", let startedDate, startedDate <= now else { return nil }
+        return now.timeIntervalSince(startedDate)
+    }
+
+    func uptimeLabel(at now: Date = Date()) -> String {
+        guard let uptime = uptime(at: now) else { return "—" }
+        let minutes = Int(uptime) / 60
+        if minutes < 1 { return "<1m" }
+        if minutes < 60 { return "\(minutes)m" }
+        if minutes < 1440 { return "\(minutes / 60)h \(minutes % 60)m" }
+        return "\(minutes / 1440)d \((minutes % 1440) / 60)h"
+    }
+
+    static func uptimePrecedes(_ left: Container, _ right: Container, at now: Date, ascending: Bool) -> Bool {
+        switch (left.uptime(at: now), right.uptime(at: now)) {
+        case let (a?, b?): return a == b ? left.configuration.id < right.configuration.id : (ascending ? a < b : a > b)
+        case (_?, nil): return true
+        case (nil, _?): return false
+        case (nil, nil): return left.configuration.id < right.configuration.id
+        }
+    }
 
     enum CodingKeys: String, CodingKey {
         case status
         case configuration
         case networks
+        case startedDate
     }
 }
 
@@ -581,6 +614,36 @@ struct PublishedPort: Codable, Equatable {
     let containerPort: Int
     let transportProtocol: String
     let hostAddress: String?
+
+    var browserURL: URL? {
+        guard transportProtocol.lowercased() == "tcp", (1...65535).contains(hostPort) else { return nil }
+        let address = hostAddress ?? ""
+        let host: String
+        if address.isEmpty || address == "0.0.0.0" || address == "::" {
+            host = "localhost"
+        } else if address.contains(":") {
+            var ip = in6_addr()
+            guard address.withCString({ inet_pton(AF_INET6, $0, &ip) }) == 1 else { return nil }
+            host = "[\(address)]"
+        } else {
+            if address.unicodeScalars.allSatisfy({ CharacterSet(charactersIn: "0123456789.").contains($0) }) {
+                var ip = in_addr()
+                guard address.withCString({ inet_pton(AF_INET, $0, &ip) }) == 1 else { return nil }
+            }
+            let labels = address.split(separator: ".", omittingEmptySubsequences: false)
+            let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-")
+            guard !labels.isEmpty, labels.allSatisfy({ label in
+                !label.isEmpty && label.count <= 63 && label.first != "-" && label.last != "-"
+                    && label.unicodeScalars.allSatisfy { allowed.contains($0) }
+            }) else { return nil }
+            host = address
+        }
+        var components = URLComponents()
+        components.scheme = "http"
+        components.host = host
+        components.port = hostPort
+        return components.url
+    }
 
     /// Stable identity for `ForEach`: `containerPort` alone repeats when the same port is
     /// published over more than one transport (e.g. tcp + udp), which collapses rows.

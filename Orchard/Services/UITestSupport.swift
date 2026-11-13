@@ -57,13 +57,18 @@ struct UITestBackend: ContainerBackend {
                 dns: DNS(nameservers: [], searchDomains: [], options: [], domain: nil),
                 resources: Resources(cpus: 2, memoryInBytes: 2_147_483_648),
                 labels: [:],
-                publishedPorts: [],
+                publishedPorts: status == "running" ? [
+                    PublishedPort(hostPort: 8080, containerPort: 80, transportProtocol: "tcp", hostAddress: "127.0.0.1"),
+                    PublishedPort(hostPort: 9090, containerPort: 90, transportProtocol: "tcp", hostAddress: "::1"),
+                    PublishedPort(hostPort: 5353, containerPort: 53, transportProtocol: "udp", hostAddress: "127.0.0.1")
+                ] : [],
                 publishedSockets: nil,
                 ssh: nil,
                 virtualization: nil,
                 sysctls: [:]
             ),
-            networks: []
+            networks: [],
+            startedDate: status == "running" ? Date(timeIntervalSince1970: 1_751_888_677) : nil
         )
     }
 

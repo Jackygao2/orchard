@@ -124,6 +124,9 @@ struct ThreeColumnLayout: View {
                 VStack(spacing: 0) {
                     // Translucent header like Mail with search
                     VStack(spacing: 8) {
+                        if selectedTab == .containers && !isWindowFullScreen {
+                            Color.clear.frame(height: 34).accessibilityHidden(true)
+                        }
                         if selectedTab == .images || selectedTab == .builds {
                             Picker("Images", selection: $selectedTab) {
                                 Text("Local").tag(TabSelection.images)
@@ -222,6 +225,7 @@ struct ThreeColumnLayout: View {
                                                     }
                                                 }
                                             }
+                                            .accessibilityIdentifier("container-sort-\(option.rawValue)")
                                         }
 
                                         Divider()

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContainersListView: View {
+    @Environment(\.openURL) private var openURL
     @EnvironmentObject var containerListService: ContainerListService
     @EnvironmentObject var clusterService: ClusterService
     @EnvironmentObject var systemService: SystemService
@@ -22,6 +23,12 @@ struct ContainersListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Text("Uptime").font(.caption).foregroundStyle(.secondary)
+                    .frame(width: 66, alignment: .trailing)
+            }
+            .padding(.horizontal, 12)
             // Container list
             List(selection: $selectedContainers) {
                 if groupLabelKey.isEmpty {
@@ -86,17 +93,26 @@ struct ContainersListView: View {
     }
 
     private func containerRow(for container: Container) -> some View {
-        ListItemRow(
-            icon: "cube",
-            iconColor: container.status.lowercased() == "running" ? .green : .secondary,
-            primaryText: container.configuration.id,
-            secondaryLeftText: networkAddress(for: container) ?? "-",
-            secondaryRightText: hostname(for: container),
-            isSelected: selectedContainers.contains(container.configuration.id),
-            showSandboxBadge: container.isSandbox,
-            ownerBadge: container.sandboxOwner?.badge,
-            pluginBadge: container.pluginBadgeText
-        )
+        HStack(spacing: 4) {
+            ListItemRow(
+                icon: "cube",
+                iconColor: container.status.lowercased() == "running" ? .green : .secondary,
+                primaryText: container.configuration.id,
+                secondaryLeftText: networkAddress(for: container) ?? "-",
+                secondaryRightText: hostname(for: container),
+                isSelected: selectedContainers.contains(container.configuration.id),
+                showSandboxBadge: container.isSandbox,
+                ownerBadge: container.sandboxOwner?.badge,
+                pluginBadge: container.pluginBadgeText
+            )
+            TimelineView(.periodic(from: .now, by: 60)) { context in
+                Text(container.uptimeLabel(at: context.date))
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .frame(width: 66, alignment: .trailing)
+                    .accessibilityIdentifier("container-uptime-\(container.configuration.id)")
+            }
+        }
         .contextMenu {
             contextMenu(for: container)
         }
@@ -225,6 +241,19 @@ struct ContainersListView: View {
         // Cluster nodes stop and go with their cluster, so Stop, Force Stop and Remove leave them out.
         let stoppableContainers = runningContainers.excludingClusterNodes
         let stoppableIds = stoppableContainers.map { $0.configuration.id }
+
+        if !multiple {
+            let ports = container.openablePorts
+            if !ports.isEmpty {
+                Menu("Open Port") {
+                    ForEach(ports, id: \.uniqueID) { port in
+                        if let url = port.browserURL {
+                            Button(url.absoluteString) { openURL(url) }
+                        }
+                    }
+                }
+            }
+        }
 
         if !multiple, let help = container.clusterNodeActionHelp {
             Text(help)
@@ -366,6 +395,9 @@ struct ContainersListView: View {
             filtered.sort { ascending ? $0.status < $1.status : $0.status > $1.status }
         case .image:
             filtered.sort { ascending ? $0.configuration.image.reference < $1.configuration.image.reference : $0.configuration.image.reference > $1.configuration.image.reference }
+        case .uptime:
+            let now = Date()
+            filtered.sort { Container.uptimePrecedes($0, $1, at: now, ascending: ascending) }
         }
 
         // Float running containers to the top (stable partition)

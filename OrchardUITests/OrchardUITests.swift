@@ -233,6 +233,29 @@ final class OrchardUITests: XCTestCase {
         )
     }
 
+    @MainActor
+    func testPublishedPortsAndUptimeAreVisible() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        XCTAssertTrue(app.descendants(matching: .any)["container-uptime-uitest-web"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["open-port-127.0.0.1|8080|80|tcp"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["open-port-::1|9090|90|tcp"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["open-port-127.0.0.1|5353|53|udp"].exists)
+        app.descendants(matching: .any)["container-uptime-uitest-web"].rightClick()
+        XCTAssertTrue(app.descendants(matching: .any)["Open Port"].waitForExistence(timeout: 10))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+    }
+
+    @MainActor
+    func testUptimeSortIsAvailable() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        app.menuButtons["Sort"].click()
+        let uptime = app.menuItems["Uptime"]
+        XCTAssertTrue(uptime.waitForExistence(timeout: 10))
+        uptime.click()
+    }
+
     /// A long environment key must not push its own row's controls out of the pane: the key
     /// column is capped, so the key wraps and Show/Copy stay reachable. The seeded container
     /// carries `ORCHARD_UI_TEST_LONG_ENVIRONMENT_VARIABLE_KEY` for exactly this.

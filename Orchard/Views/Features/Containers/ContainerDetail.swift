@@ -344,6 +344,7 @@ struct ContainerDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             if !container.configuration.initProcess.environment.isEmpty {
                 EnvironmentVariablesTable(environment: container.configuration.initProcess.environment)
+                    .id(container.configuration.id)
             } else {
                 Text("No environment variables")
                     .foregroundColor(.secondary)
@@ -389,11 +390,7 @@ struct EnvironmentVariablesTable: View {
     @State private var revealedValues: Set<Int> = []
 
     private var parsedEnvironment: [(key: String, value: String)] {
-        environment.compactMap { envVar in
-            let components = envVar.split(separator: "=", maxSplits: 1)
-            guard components.count == 2 else { return nil }
-            return (key: String(components[0]), value: String(components[1]))
-        }
+        environment.compactMap(EnvironmentValuePolicy.parse)
     }
 
     private var maxKeyWidth: CGFloat {
@@ -423,26 +420,7 @@ struct EnvironmentVariablesTable: View {
             Divider()
 
             // Table rows
-            if parsedEnvironment.isEmpty {
-                // Handle malformed environment variables
-                ForEach(environment, id: \.self) { envVar in
-                    HStack {
-                        Text(envVar)
-                            .font(.system(.subheadline, design: .monospaced))
-                            .foregroundColor(.primary)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.clear)
-
-                    if envVar != environment.last {
-                        Divider()
-                            .padding(.leading, 12)
-                    }
-                }
-            } else {
+            if !parsedEnvironment.isEmpty {
                 ForEach(Array(parsedEnvironment.enumerated()), id: \.offset) { index, envPair in
                     HStack(alignment: .top, spacing: 0) {
                         // Key column
@@ -455,28 +433,24 @@ struct EnvironmentVariablesTable: View {
 
                         // Value column — hidden until revealed, but copyable either way.
                         HStack(alignment: .top, spacing: 8) {
-                            if revealedValues.contains(index) {
-                                Text(envPair.value)
-                                    .font(.system(.subheadline, design: .monospaced))
-                                    .foregroundColor(.secondary)
-                                    .textSelection(.enabled)
-                                    .lineLimit(nil)
-                            } else {
-                                Text("••••••••")
-                                    .font(.system(.subheadline, design: .monospaced))
-                                    .foregroundColor(.secondary)
-                            }
-                            Button(revealedValues.contains(index) ? "Hide" : "Show") {
-                                if revealedValues.contains(index) {
-                                    revealedValues.remove(index)
-                                } else {
-                                    revealedValues.insert(index)
+                            Text(EnvironmentValuePolicy.displayValue(key: envPair.key, value: envPair.value, revealed: revealedValues.contains(index)))
+                                .font(.system(.subheadline, design: .monospaced))
+                                .foregroundColor(.secondary)
+                                .textSelection(.enabled)
+                                .lineLimit(nil)
+                            if EnvironmentValuePolicy.isSecret(envPair.key) {
+                                Button(revealedValues.contains(index) ? "Hide" : "Show") {
+                                    if revealedValues.contains(index) {
+                                        revealedValues.remove(index)
+                                    } else {
+                                        revealedValues.insert(index)
+                                    }
                                 }
+                                .buttonStyle(.plain)
+                                .font(.caption)
+                                .foregroundColor(.blue)
+                                .accessibilityIdentifier("environment-value-toggle-\(envPair.key)")
                             }
-                            .buttonStyle(.plain)
-                            .font(.caption)
-                            .foregroundColor(.blue)
-                            .accessibilityIdentifier("environment-value-toggle-\(envPair.key)")
                             Spacer()
                             CopyButton(text: envPair.value, label: "Copy value")
                         }
@@ -492,9 +466,16 @@ struct EnvironmentVariablesTable: View {
                     }
                 }
             }
+            if parsedEnvironment.count != environment.count {
+                Text("An invalid environment entry is hidden.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(12)
+            }
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.05))
         .cornerRadius(8)
+        .onChange(of: environment) { _, _ in revealedValues.removeAll() }
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Color(NSColor.separatorColor).opacity(0.3), lineWidth: 1)

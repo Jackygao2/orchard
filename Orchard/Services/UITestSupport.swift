@@ -36,6 +36,9 @@ struct UITestBackend: ContainerBackend {
                     environment: [
                         "ORCHARD_UI_TEST_LONG_ENVIRONMENT_VARIABLE_KEY=192.168.64.1/32",
                         "PATH=/usr/bin",
+                        "MIXED_secret=fixture-private-value",
+                        "DISPLAY_MODE=fixture-visible-value",
+                        "PASSWORDfixture-malformed-private",
                     ],
                     workingDirectory: "/",
                     arguments: ["nginx", "-g", "daemon off;"],

@@ -292,6 +292,26 @@ final class OrchardUITests: XCTestCase {
         wait(for: [revealed], timeout: 10)
     }
 
+    @MainActor
+    func testSecretValuesAreMaskedAndRevealResets() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        let detail = app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.6))
+        let toggle = app.buttons["environment-value-toggle-MIXED_secret"]
+        for _ in 0..<8 where !(toggle.exists && toggle.isHittable) {
+            detail.scroll(byDeltaX: 0, deltaY: -150)
+        }
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["fixture-private-value"].exists)
+        XCTAssertTrue(app.staticTexts["fixture-visible-value"].exists)
+        XCTAssertFalse(app.staticTexts["PASSWORDfixture-malformed-private"].exists)
+        toggle.click()
+        XCTAssertTrue(app.staticTexts["fixture-private-value"].waitForExistence(timeout: 5))
+        app.staticTexts["uitest-db"].firstMatch.click()
+        app.staticTexts["uitest-web"].firstMatch.click()
+        XCTAssertFalse(app.staticTexts["fixture-private-value"].exists)
+    }
+
     /// The #54 class: a failed user action must be visible. With the stub set to fail
     /// `stopContainer`, stopping the running container should surface the error alert.
     @MainActor

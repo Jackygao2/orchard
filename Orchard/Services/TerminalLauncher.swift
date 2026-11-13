@@ -30,7 +30,7 @@ final class TerminalLauncher: ObservableObject {
         let containerBinary = settings.safeContainerBinaryPath()
         let fullCommand = "'\(containerBinary)' exec -it '\(containerId)' \(shell)"
 
-        Log.ui.debug("Opening terminal — terminal: \(self.settings.preferredTerminal.displayName), command: \(fullCommand)")
+        Log.ui.debug("Opening terminal — terminal: \(self.settings.preferredTerminal.displayName)")
 
         switch settings.preferredTerminal {
         case .terminal:
@@ -49,7 +49,7 @@ final class TerminalLauncher: ObservableObject {
     /// Open the user's preferred terminal running an arbitrary shell command (e.g. a
     /// kubectl session preconfigured for a cluster).
     func openTerminal(runningCommand command: String) {
-        Log.ui.debug("Opening terminal — terminal: \(self.settings.preferredTerminal.displayName), command: \(command)")
+        Log.ui.debug("Opening terminal command — terminal: \(self.settings.preferredTerminal.displayName)")
 
         switch settings.preferredTerminal {
         case .terminal:
@@ -152,10 +152,10 @@ final class TerminalLauncher: ObservableObject {
         let result = appleScript?.executeAndReturnError(&error)
 
         if let error = error {
-            Log.ui.error("❌ AppleScript error: \(String(describing: error))")
+            Log.ui.error("❌ AppleScript execution failed")
             alertCenter.error(Self.userMessage(for: error))
-        } else if let result = result {
-            Log.ui.debug("✓ AppleScript executed: \(String(describing: result))")
+        } else if result != nil {
+            Log.ui.debug("✓ AppleScript executed")
         }
     }
 

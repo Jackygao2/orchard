@@ -131,7 +131,7 @@ final class ContainerListService: ObservableObject {
             guard generation > appliedGeneration else { return }
             // Background refreshes stay silent; only a user-initiated load alerts.
             self.alertCenter.error(error.localizedDescription, source: showLoading ? .user : .background)
-            Log.containers.error("\(error.localizedDescription)")
+            Log.containers.error("Failed to load containers")
         }
     }
 
@@ -159,7 +159,7 @@ final class ContainerListService: ObservableObject {
         } catch {
             loadingContainers.remove(id)
             self.alertCenter.error("Failed to force stop container: \(error.localizedDescription)")
-            Log.containers.error("Error force stopping container: \(error.localizedDescription)")
+            Log.containers.error("Error force stopping container")
         }
     }
 
@@ -176,7 +176,7 @@ final class ContainerListService: ObservableObject {
         } catch {
             loadingContainers.remove(id)
             self.alertCenter.error("Failed to stop container: \(error.localizedDescription)")
-            Log.containers.error("Error stopping container: \(error.localizedDescription)")
+            Log.containers.error("Error stopping container")
         }
     }
 
@@ -220,7 +220,7 @@ final class ContainerListService: ObservableObject {
                 return
             } catch {
                 let errorMsg = error.localizedDescription
-                Log.containers.error("Container \(id) failed to start (attempt \(attempt)): \(errorMsg)")
+                Log.containers.error("Container \(id) failed to start (attempt \(attempt))")
 
                 let classified = OrchardError.classifyStartError(error, id: id)
                 let containerNotFound = classified == .containerNotFound(id: id)
@@ -348,7 +348,7 @@ final class ContainerListService: ObservableObject {
         } catch {
             loadingContainers.remove(id)
             self.alertCenter.error("Failed to remove container: \(error.localizedDescription)")
-            Log.containers.error("Error removing container: \(error.localizedDescription)")
+            Log.containers.error("Error removing container")
         }
     }
 
@@ -374,7 +374,7 @@ final class ContainerListService: ObservableObject {
             return true
         } catch {
             self.alertCenter.error("Failed to export container: \(error.localizedDescription)")
-            Log.containers.error("Error exporting container: \(error.localizedDescription)")
+            Log.containers.error("Error exporting container")
             return false
         }
     }
@@ -403,7 +403,7 @@ final class ContainerListService: ObservableObject {
             return stored
         } catch {
             self.alertCenter.error("Failed to commit container: \(error.localizedDescription)")
-            Log.containers.error("Error committing container: \(error.localizedDescription)")
+            Log.containers.error("Error committing container")
             return nil
         }
     }
@@ -440,7 +440,7 @@ final class ContainerListService: ObservableObject {
             // The daemon's nested "failed to clean container / clean mounts / trim failed"
             // chain is unreadable in an alert; log it whole and show the classified form.
             self.alertCenter.error(OrchardError.classifyCleanError(error, id: id))
-            Log.containers.error("Error reclaiming disk space: \(error.localizedDescription)")
+            Log.containers.error("Error reclaiming disk space")
             return false
         }
     }
@@ -772,7 +772,7 @@ final class ContainerListService: ObservableObject {
                 )
                 deletedCount += 1
             } catch {
-                Log.containers.error("Not recreating \(containerId) without the mount: \(error.localizedDescription)")
+                Log.containers.error("Not recreating \(containerId) without the mount")
                 refusals.append("\(containerId): \(error.localizedDescription)")
                 failedCount += 1
             }

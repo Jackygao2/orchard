@@ -20,9 +20,5 @@
 			</array>
 		</dict>
 	</array>
-	<key>SUFeedURL</key>
-	<string>https://orchard.andon.dev/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>Ws/MYNAg4JzHzrjDzptZnj8Sun8S4kUnBUyIwx7FExk=</string>
 </dict>
 </plist>

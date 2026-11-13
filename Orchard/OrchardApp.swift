@@ -36,10 +36,6 @@ struct OrchardApp: App {
                 .keyboardShortcut("k", modifiers: .command)
             }
             CommandGroup(replacing: .help) {
-                CheckForUpdatesView(updater: updater)
-
-                Divider()
-
                 Button("Orchard Help") {
                     if let url = URL(string: "https://github.com/andrew-waters/orchard") {
                         NSWorkspace.shared.open(url)

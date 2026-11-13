@@ -33,7 +33,7 @@ struct NewerVersionView: View {
                         .foregroundColor(.secondary)
                 }
 
-                Text("Please check whether an Orchard update is available.")
+                Text("Check for a newer ContainerDesk download.")
                     .font(.body)
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
@@ -41,13 +41,6 @@ struct NewerVersionView: View {
             }
 
             HStack(spacing: 16) {
-                Button("Check latest Orchard releases") {
-                    if let url = URL(string: "https://github.com/andrew-waters/orchard/releases") {
-                        NSWorkspace.shared.open(url)
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                
                 Button("Proceed Anyway") {
                     Task { @MainActor in
                         await systemService.checkSystemStatusIgnoreVersion()

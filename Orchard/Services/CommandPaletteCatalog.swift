@@ -419,14 +419,6 @@ enum CommandPaletteCatalog {
                 keywords: "kernel recommended set install",
                 showsWhenEmpty: false,
                 action: .setRecommendedKernel),
-            PaletteEntry(
-                id: "action:checkUpdates",
-                section: .actions,
-                icon: "arrow.down.app",
-                title: "Check for Updates...",
-                keywords: "update upgrade version new release",
-                showsWhenEmpty: false,
-                action: .checkForUpdates),
         ])
 
         return actions

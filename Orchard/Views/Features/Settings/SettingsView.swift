@@ -158,17 +158,10 @@ struct GeneralSettingsView: View {
             }
 
             Section {
-                LabeledContent("Updates") {
-                    Button("Check for Updates…") {
-                        updater.checkForUpdates()
-                    }
-                    .controlSize(.small)
-                    .disabled(!updater.canCheckForUpdates)
-                }
-            } footer: {
-                Text("You're running Orchard v\(AppInfo.version). Orchard checks for updates automatically.")
+                Text("ContainerDesk v\(AppInfo.version). Updates are distributed as new downloads.")
                     .foregroundColor(.secondary)
             }
+
         }
         .formStyle(.grouped)
         .onAppear { containerShell = settings.containerShell }

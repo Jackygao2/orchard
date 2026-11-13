@@ -12,3 +12,10 @@ func productIdentityIsolation() {
     #expect(SandboxMarker.orchardOwner == "dev.andon.orchard")
     #expect(SandboxMarker.sandboxLabelKey == "com.orchard.sandbox")
 }
+
+@Test("Product bundle does not contain Orchard update configuration")
+func productHasNoUpdateFeed() {
+    #expect(Bundle.main.bundleIdentifier == "local.containerdesk")
+    #expect(Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") == nil)
+    #expect(Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") == nil)
+}

@@ -296,12 +296,17 @@ final class ComposeService: ObservableObject {
     /// A project found only by its labels still comes down: the services and their order are
     /// read back off the containers. Stopping in the wrong order is a worse outcome than
     /// refusing, so a known file is used when there is one.
-    func down(project: ComposeProject, options: DownOptions = DownOptions()) async {
+    func down(project: ComposeProject, options: DownOptions = DownOptions(), confirmedVolumes: Set<String>? = nil) async {
         refreshParses()
         let file = parses[project.name]?.file ?? Self.fileFromLabels(project)
         let identity = parses[project.name]?.identity ?? ProjectIdentity(name: project.name)
         await runPlan(project: project.name, verb: "down") { state in
-            try Planner.down(file: file, project: identity, state: state, options: options)
+            let plan = try Planner.down(file: file, project: identity, state: state, options: options)
+            guard let confirmedVolumes else { return plan }
+            return Plan(project: plan.project, operations: plan.operations.filter { operation in
+                guard case .removeVolume(let volume) = operation else { return true }
+                return confirmedVolumes.contains(volume.name)
+            }, decisions: plan.decisions)
         }
     }
 

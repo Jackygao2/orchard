@@ -31,7 +31,7 @@ struct ComposeProjectDetailView: View {
 
     @State private var tab: ProjectTab = .running
     /// Set while Down asks what to do with the project's volumes.
-    @State private var pendingDown: ComposeProject?
+    @State private var pendingDown: VolumeRemovalRequest?
     @State private var dryRunPlan: DryRunPlan?
 
     private var isBusy: Bool { composeService.busyProjects.contains(projectName) }
@@ -154,6 +154,10 @@ struct ComposeProjectDetailView: View {
                     Label("Add Compose File", systemImage: "doc.badge.plus")
                 }
             }
+            Button("Remove Volumes…") {
+                ComposeDown.requestRemoval(project, volumeService: volumeService, pending: $pendingDown)
+            }
+            .disabled(isBusy || ComposeProjectVolume.labelled(project.name, in: volumeService.volumes).isEmpty)
             Button {
                 ComposeDown.request(
                     project,
@@ -164,7 +168,7 @@ struct ComposeProjectDetailView: View {
             } label: {
                 Label("Down", systemImage: "stop.fill")
             }
-            .disabled(isBusy || !ComposeDown.isAvailable(for: project, volumes: volumeService.volumes))
+            .disabled(isBusy || project.containers.isEmpty)
             .help(
                 project.containers.isEmpty
                     ? "Remove the volumes this project kept"

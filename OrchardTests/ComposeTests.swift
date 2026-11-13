@@ -842,6 +842,20 @@ struct ComposeVolumeTests {
         #expect(harness.backend.deletedVolumeNames == ["shop_pgdata"])
     }
 
+    @Test("Volume confirmation lists sizes and execution only removes confirmed names")
+    func confirmedVolumes() async throws {
+        let harness = try Harness(file: Self.file)
+        defer { harness.cleanUp() }
+        let labels = [ProjectIdentity.projectLabel: "shop"]
+        harness.backend.volumes = [volume("shop_pgdata", labels: labels), volume("shop_new", labels: labels)]
+        let request = ComposeDown.removalRequest(project: harness.project, volumes: [harness.backend.volumes[0]], containers: [], sizes: ["shop_pgdata": .known(1024)])
+        #expect(request.names == ["shop_pgdata"])
+        #expect(request.message.contains("shop_pgdata") && !request.message.contains("size unavailable"))
+        #expect(harness.backend.deletedVolumeNames.isEmpty)
+        await harness.service.down(project: harness.project, options: DownOptions(removeVolumes: true), confirmedVolumes: Set(request.names))
+        #expect(harness.backend.deletedVolumeNames == ["shop_pgdata"])
+    }
+
     @Test("A project with no containers left can still have the volumes it kept removed")
     func downAfterKeepingVolumes() async throws {
         let harness = try Harness(file: Self.file)

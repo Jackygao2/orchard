@@ -14,7 +14,7 @@ struct ComposeProjectsListView: View {
     /// because the offer itself goes away as soon as the install starts.
     @State private var pluginSheetIsUpdate = false
     /// A project whose Down is asking what to do with its volumes.
-    @State private var pendingDown: ComposeProject?
+    @State private var pendingDown: VolumeRemovalRequest?
 
     private var projects: [ComposeProject] {
         ComposeProject.group(
@@ -232,7 +232,11 @@ struct ComposeProjectsListView: View {
                 pending: $pendingDown
             )
         }
-            .disabled(busy || !ComposeDown.isAvailable(for: project, volumes: volumeService.volumes))
+            .disabled(busy || project.containers.isEmpty)
+        Button("Remove Volumes…") {
+            ComposeDown.requestRemoval(project, volumeService: volumeService, pending: $pendingDown)
+        }
+        .disabled(busy || ComposeProjectVolume.labelled(project.name, in: volumeService.volumes).isEmpty)
         if let url = project.fileURL {
             Divider()
             Button("Reveal Compose File") {

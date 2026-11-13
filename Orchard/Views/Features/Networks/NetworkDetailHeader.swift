@@ -36,6 +36,7 @@ struct NetworkDetailHeader: View {
                     Button("Delete", role: .destructive) {
                         confirmNetworkDeletion(networkId: network.id)
                     }
+                    .keyboardShortcut(.delete, modifiers: .command)
                     .buttonStyle(BorderedProminentButtonStyle())
                 }
             }

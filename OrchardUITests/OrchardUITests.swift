@@ -83,6 +83,78 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testSearchShortcutFocusesToolbar() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        app.typeKey("f", modifierFlags: .command)
+        app.typeText("uitest")
+        let search = app.descendants(matching: .any)["toolbar-search"]
+        XCTAssertEqual(search.value as? String, "uitest")
+    }
+
+    @MainActor
+    func testSelectedContainerShortcuts() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        app.typeKey("t", modifierFlags: .command)
+        XCTAssertTrue(app.staticTexts["UI test: terminal requested for uitest-web"].waitForExistence(timeout: 10))
+        app.buttons["OK"].click()
+        app.typeKey("l", modifierFlags: .command)
+        XCTAssertTrue(app.windows.element(boundBy: 1).waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testDeleteShortcutAsksBeforeRemovingStoppedContainer() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        app.staticTexts["uitest-db"].click()
+        XCTAssertTrue(app.buttons["Delete"].waitForExistence(timeout: 10), "Stopped container's Delete action should be visible")
+        app.typeKey(XCUIKeyboardKey.delete, modifierFlags: .command)
+        let confirmation = app.sheets.firstMatch
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 10))
+        XCTAssertTrue(confirmation.staticTexts.containing(NSPredicate(format: "value CONTAINS 'uitest-db'")).firstMatch.exists)
+        confirmation.buttons["Cancel"].click()
+        XCTAssertTrue(app.staticTexts["uitest-db"].exists)
+    }
+
+    @MainActor
+    func testToolbarRefreshAndCommandPalette() throws {
+        let app = launchedApp()
+        let status = app.descendants(matching: .any)["toolbar-runtime-status"]
+        XCTAssertTrue(status.waitForExistence(timeout: 20))
+        status.click()
+        XCTAssertTrue(app.menuItems["Stop"].waitForExistence(timeout: 5))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+        let refresh = app.buttons["toolbar-refresh"]
+        XCTAssertTrue(refresh.waitForExistence(timeout: 20))
+        refresh.click()
+        app.typeKey("k", modifierFlags: .command)
+        XCTAssertTrue(app.textFields["command-palette"].waitForExistence(timeout: 10))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+        XCTAssertTrue(refresh.exists)
+    }
+
+    @MainActor
+    func testQuickActionOpensNetworkCreation() throws {
+        let app = launchedApp()
+        let actions = app.descendants(matching: .any)["toolbar-quick-actions"]
+        XCTAssertTrue(actions.waitForExistence(timeout: 20))
+        actions.click()
+        app.menuItems["New Network"].click()
+        XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 10))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+    }
+
+    @MainActor
+    func testComposeOpenShortcutPresentsFileChooser() throws {
+        let app = launchedApp()
+        app.typeKey("o", modifierFlags: [.command, .shift])
+        let panel = app.dialogs["open-panel"]
+        XCTAssertTrue(panel.waitForExistence(timeout: 10))
+        panel.buttons["Cancel"].click()
+    }
+
+    @MainActor
     func testAdvancedVisibilitySetting() throws {
         let app = launchedApp()
         let settings = app.buttons["sidebar-settings"]

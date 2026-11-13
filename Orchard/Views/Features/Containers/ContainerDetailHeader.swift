@@ -269,6 +269,7 @@ struct ContainerDetailHeader: View {
                         Button("Terminal (sh)") {
                             terminalLauncher.openTerminal(for: container.configuration.id)
                         }
+                        .keyboardShortcut("t", modifiers: .command)
                         .buttonStyle(BorderedButtonStyle())
 
                         Button("Terminal (bash)") {
@@ -298,6 +299,7 @@ struct ContainerDetailHeader: View {
                         Button("Delete", role: .destructive) {
                             showDeleteConfirmation = true
                         }
+                        .keyboardShortcut(.delete, modifiers: .command)
                         .buttonStyle(BorderedButtonStyle())
                         .disabled(isDeleting)
                     }
@@ -315,6 +317,7 @@ struct ContainerDetailHeader: View {
                 Button("Logs") {
                     openWindow(id: "logs", value: LogTarget.container(container.configuration.id))
                 }
+                .keyboardShortcut("l", modifiers: .command)
                 .buttonStyle(BorderedButtonStyle())
 
                 if containerListService.exportingContainers.contains(container.configuration.id) {

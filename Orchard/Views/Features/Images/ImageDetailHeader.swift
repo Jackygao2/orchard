@@ -70,6 +70,7 @@ struct ImageDetailHeader: View {
                     Button("Delete", role: .destructive) {
                         showDeleteConfirmation = true
                     }
+                    .keyboardShortcut(.delete, modifiers: .command)
                     .buttonStyle(BorderedProminentButtonStyle())
                     .tint(.red)
                 } else {

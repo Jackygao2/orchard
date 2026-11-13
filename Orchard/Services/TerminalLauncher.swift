@@ -7,10 +7,12 @@ import AppKit
 final class TerminalLauncher: ObservableObject {
     private let settings: SettingsStore
     private let alertCenter: AlertCenter
+    private let terminalOverride: ((String) -> Void)?
 
-    init(settings: SettingsStore, alertCenter: AlertCenter) {
+    init(settings: SettingsStore, alertCenter: AlertCenter, terminalOverride: ((String) -> Void)? = nil) {
         self.settings = settings
         self.alertCenter = alertCenter
+        self.terminalOverride = terminalOverride
     }
 
     /// Open a shell in a container.
@@ -20,6 +22,10 @@ final class TerminalLauncher: ObservableObject {
     /// (#107). Passing a value explicitly overrides the setting, which is what the bash
     /// action below does.
     func openTerminal(for containerId: String, shell: String? = nil) {
+        if let terminalOverride {
+            terminalOverride(containerId)
+            return
+        }
         let shell = shell ?? settings.containerShell
         let containerBinary = settings.safeContainerBinaryPath()
         let fullCommand = "'\(containerBinary)' exec -it '\(containerId)' \(shell)"

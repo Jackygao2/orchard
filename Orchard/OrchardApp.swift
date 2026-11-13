@@ -47,6 +47,10 @@ struct OrchardApp: App {
                     NotificationCenter.default.post(name: NSNotification.Name("FocusNavigationSearch"), object: nil)
                 }
                 .keyboardShortcut("f", modifiers: .command)
+                Button("Open Compose Project…") {
+                    NotificationCenter.default.post(name: NSNotification.Name("OpenComposeProject"), object: nil)
+                }
+                .keyboardShortcut("o", modifiers: [.command, .shift])
                 Button("Command Palette...") {
                     NotificationCenter.default.post(
                         name: NSNotification.Name("ToggleCommandPalette"), object: nil)

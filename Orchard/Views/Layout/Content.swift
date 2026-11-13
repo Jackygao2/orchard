@@ -70,7 +70,6 @@ struct ContentView: View {
     @State private var initialLoadTask: Task<Void, Never>?
 
     @FocusState private var listFocusedTab: TabSelection?
-    @FocusState private var toolbarSearchFocused: Bool
 
 
     @State private var showingCommandPalette = false
@@ -141,10 +140,8 @@ struct ContentView: View {
                 .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
                 .toolbar {
                     ToolbarItemGroup {
-                        TextField("Search", text: $searchText)
+                        ToolbarSearchField(text: $searchText)
                             .frame(width: 150)
-                            .focused($toolbarSearchFocused)
-                            .accessibilityIdentifier("toolbar-search")
                         Menu {
                             Button("Start") { Task { await systemService.startSystem() } }
                             Button("Stop") { Task { await systemService.stopSystem() } }
@@ -166,7 +163,6 @@ struct ContentView: View {
                                 selectedTab = .compose
                                 ComposeAddFlow.present(service: composeService)
                             }
-                            .keyboardShortcut("o", modifiers: [.command, .shift])
                             Button("New Volume") { handlePaletteAction(.showCreateVolumeSheet) }
                             Button("New Network") { handlePaletteAction(.showAddNetworkSheet) }
                         }
@@ -529,8 +525,10 @@ struct ContentView: View {
             guard let rawValue = notification.object as? String, let tab = TabSelection(rawValue: rawValue) else { return }
             selectedTab = tab
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("FocusNavigationSearch"))) { _ in
-            toolbarSearchFocused = true
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenComposeProject"))) { _ in
+            guard hostWindow?.isKeyWindow == true else { return }
+            selectedTab = .compose
+            ComposeAddFlow.present(service: composeService)
         }
         .onOpenURL { url in
             guard let link = DeepLink.parse(url) else { return }

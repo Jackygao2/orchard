@@ -66,6 +66,7 @@ struct VolumeDetailView: View {
                 Button("Run Container...") { showRunSheet = true }
                     .help("Run a container with this volume mounted")
                 VolumeDeleteButton(volumes: [volume], title: "Delete...", prominent: true)
+                    .keyboardShortcut(.delete, modifiers: .command)
             }
         }
         .padding(.horizontal, 16)

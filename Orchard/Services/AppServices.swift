@@ -40,7 +40,7 @@ final class AppServices: ObservableObject {
         if isUITestMockBackendRequested {
             // The stub backend is the container install; whether the machine running the
             // suite has one is beside the point.
-            return AppServices(backend: UITestBackend(), machineBackend: UITestMachineBackend(), modelBackend: UITestModelBackend(), modelServerEngine: UITestModelServerEngine(), runner: UITestCommandRunner(), isContainerInstalled: { true }, rosettaService: RosettaService(probe: { .installed }, installer: {}))
+            return AppServices(backend: UITestBackend(), machineBackend: UITestMachineBackend(), modelBackend: UITestModelBackend(), modelServerEngine: UITestModelServerEngine(), runner: UITestCommandRunner(), isContainerInstalled: { true }, rosettaService: RosettaService(probe: { .installed }, installer: {}), simulateTerminal: true)
         }
         #endif
         let services = AppServices()
@@ -65,13 +65,16 @@ final class AppServices: ObservableObject {
         defaults: UserDefaults = .standard,
         secrets: SecretsStore = KeychainSecretsStore(),
         isContainerInstalled: (@MainActor () -> Bool)? = nil,
-        rosettaService: RosettaService? = nil
+        rosettaService: RosettaService? = nil,
+        simulateTerminal: Bool = false
     ) {
         let alertCenter = AlertCenter()
         self.alertCenter = alertCenter
         let settings = SettingsStore(alertCenter: alertCenter, defaults: defaults, secrets: secrets)
         self.settings = settings
-        self.terminalLauncher = TerminalLauncher(settings: settings, alertCenter: alertCenter)
+        self.terminalLauncher = TerminalLauncher(settings: settings, alertCenter: alertCenter, terminalOverride: simulateTerminal ? { id in
+            alertCenter.error("UI test: terminal requested for \(id)")
+        } : nil)
         let builderService = BuilderService(runner: runner, settings: settings, alertCenter: alertCenter)
         self.builderService = builderService
         let clusterService = ClusterService(runner: runner, settings: settings, alertCenter: alertCenter, defaults: defaults)

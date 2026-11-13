@@ -29,6 +29,11 @@ struct CommandPaletteCatalogTests {
 
     private func ids(_ entries: [PaletteEntry]) -> [String] { entries.map(\.id) }
 
+    @Test("The palette does not offer disabled update checks")
+    func noUpdateAction() {
+        #expect(!catalog().contains { $0.action == .checkForUpdates })
+    }
+
     @Test("Each volume is an entry found by name, and Create and Prune Volumes are actions")
     func volumeEntries() {
         let entries = catalog(volumes: [

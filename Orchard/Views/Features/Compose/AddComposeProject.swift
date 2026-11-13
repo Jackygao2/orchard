@@ -8,16 +8,16 @@ import UniformTypeIdentifiers
 enum ComposeAddFlow {
     static func present(service: ComposeService) {
         let panel = NSOpenPanel()
-        panel.message = "Choose a compose file"
+        panel.message = "Choose a Compose file or folder"
         panel.prompt = "Choose"
         panel.canChooseFiles = true
-        panel.canChooseDirectories = false
+        panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
         var types: [UTType] = [.yaml]
         if let yml = UTType(filenameExtension: "yml") { types.append(yml) }
         panel.allowedContentTypes = types
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        service.beginAdd(fileURL: url)
+        service.beginAdd(selectionURL: url)
     }
 }
 
@@ -31,6 +31,8 @@ enum ComposeAddFlow {
 struct ComposeReviewSheet: View {
     @EnvironmentObject var composeService: ComposeService
     @Environment(\.dismiss) private var dismiss
+
+    @State private var acknowledgedBehavioural = false
 
     let preview: ComposeFilePreview
     /// True when the project is already known and the file has simply moved on.
@@ -84,6 +86,7 @@ struct ComposeReviewSheet: View {
                         .foregroundStyle(.green)
                     }
                     servicesSection
+                    differencesSection
                 }
                 .padding()
             }
@@ -119,10 +122,19 @@ struct ComposeReviewSheet: View {
                         .foregroundStyle(tint)
                         .font(.caption)
                         .padding(.top, 2)
-                    Text(finding.message)
-                        .font(.callout)
-                        .textSelection(.enabled)
-                        .fixedSize(horizontal: false, vertical: true)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(finding.supportLabel) · \(preview.fileURL.lastPathComponent):\(finding.mark?.description ?? "location unavailable")")
+                            .font(.caption.weight(.semibold))
+                        Text(finding.message)
+                            .font(.callout)
+                            .accessibilityIdentifier("compose-finding-\(finding.key)")
+                        if let suggestion = ComposeImportPolicy.suggestion(for: finding.key) {
+                            Text("Suggestion: \(suggestion)").font(.caption)
+                                .accessibilityIdentifier("compose-suggestion-\(finding.key)")
+                        }
+                    }
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
@@ -132,15 +144,38 @@ struct ComposeReviewSheet: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Services")
                 .font(.headline)
-            Text(preview.serviceNames.joined(separator: ", "))
+            ForEach(preview.file.orderedServices) { service in
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(service.name).font(.subheadline.weight(.medium))
+                    Text("Ports: \(service.ports.isEmpty ? "None" : service.ports.map(\.description).joined(separator: ", "))")
+                    Text("Networks: \(service.networks.isEmpty ? "Default" : service.networks.joined(separator: ", "))")
+                    Text("Volumes: \(service.mounts.isEmpty ? "None" : service.mounts.map(\.description).joined(separator: ", "))")
+                }
                 .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+            }
+        }
+    }
+
+    private var differencesSection: some View {
+        DisclosureGroup("Differences from Docker Compose") {
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Services use <project>-<service> names, with the DNS domain when configured.")
+                Text("Dependencies start first, but readiness is not checked.")
+                Text("Volumes attach to one container at a time; use a bind mount to share files. They contain lost+found; set PostgreSQL PGDATA to a subdirectory.")
+                Text("Anonymous volumes survive Down and are reused. Each container has its own IP; published ports are available on localhost.")
+                Text("Restart policies and health checks are not supported.")
+            }.font(.callout).padding(.top, 4)
         }
     }
 
     private var footer: some View {
-        HStack {
+        VStack(alignment: .leading) {
+            if !blocking.isEmpty {
+                Toggle("I understand these behavioural differences", isOn: $acknowledgedBehavioural)
+                    .accessibilityIdentifier("compose-acknowledge")
+            }
+            HStack {
             Spacer()
             Button("Cancel") { dismiss() }
                 .keyboardShortcut(.cancelAction)
@@ -155,6 +190,9 @@ struct ComposeReviewSheet: View {
                 dismiss()
             }
             .keyboardShortcut(.defaultAction)
+            .disabled(!blocking.isEmpty && !acknowledgedBehavioural)
+            .accessibilityIdentifier("compose-confirm-import")
+            }
         }
         .padding()
     }

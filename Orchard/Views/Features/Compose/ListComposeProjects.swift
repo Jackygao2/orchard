@@ -47,7 +47,17 @@ struct ComposeProjectsListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .composeDownConfirmation($pendingDown)
-        .onAppear { composeService.refreshParses() }
+        .onAppear {
+            composeService.refreshParses()
+            #if DEBUG
+            let arguments = ProcessInfo.processInfo.arguments
+            if arguments.contains(uiTestMockBackendArgument),
+               let index = arguments.firstIndex(of: "--uitest-compose-review"),
+               arguments.indices.contains(index + 1), composeService.pendingPreview == nil {
+                composeService.beginAdd(selectionURL: URL(fileURLWithPath: arguments[index + 1]))
+            }
+            #endif
+        }
         .task {
             // Looked for when the tab is opened rather than polled: it only changes when
             // someone installs it, or when container's installer clears the plugin directory.

@@ -103,6 +103,14 @@ final class ComposeService: ObservableObject {
         )
     }
 
+    func beginAdd(selectionURL: URL) {
+        do {
+            try beginAdd(fileURL: ComposeImportPolicy.resolve(selectionURL))
+        } catch {
+            alertCenter.error(error.localizedDescription)
+        }
+    }
+
     /// Read a chosen file and hold it for review. Parse failures are errors here rather than
     /// findings: a file that cannot be read is not a project.
     func beginAdd(fileURL: URL) {

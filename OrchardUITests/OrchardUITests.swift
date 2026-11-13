@@ -422,4 +422,30 @@ final class OrchardUITests: XCTestCase {
             "A failed action should present the error alert"
         )
     }
+    @MainActor
+    func testComposeImportReviewRequiresAcknowledgement() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try """
+        services:
+          web:
+            image: nginx
+            restart: always
+            user: "1000"
+        """.write(to: directory.appendingPathComponent("compose.yaml"), atomically: true, encoding: .utf8)
+        let app = launchedApp(extraArguments: ["--uitest-compose-review", directory.path])
+        app.typeKey("3", modifierFlags: .command)
+        let acknowledge = app.checkBoxes["compose-acknowledge"]
+        XCTAssertTrue(acknowledge.waitForExistence(timeout: 20))
+        let confirm = app.buttons["compose-confirm-import"]
+        XCTAssertTrue(confirm.exists)
+        XCTAssertFalse(confirm.isEnabled)
+        XCTAssertTrue(app.descendants(matching: .any)["compose-finding-restart"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["compose-suggestion-user"].exists)
+        acknowledge.click()
+        XCTAssertTrue(confirm.isEnabled)
+        app.buttons["Cancel"].click()
+    }
+
 }

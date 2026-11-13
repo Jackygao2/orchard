@@ -27,6 +27,13 @@ struct OrchardApp: App {
         .defaultSize(width: 1200, height: 800)
         .windowToolbarStyle(.unified(showsTitle: false))
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About \(AppBrand.name)") {
+                    NSApplication.shared.orderFrontStandardAboutPanel(options: [
+                        .credits: NSAttributedString(string: AppBrand.orchardCredit + "\nContainerDesk contributors")
+                    ])
+                }
+            }
             CommandGroup(after: .sidebar) {
                 Divider()
                 Button("Command Palette...") {

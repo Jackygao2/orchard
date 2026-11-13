@@ -9,8 +9,8 @@ enum ContainerConfigMode: Equatable {
     case edit
 }
 
-/// The tabbed container-configuration form shared by Run and Edit. Owns the tab UI, the
-/// per-tab content, row add/remove, and (run mode) name validation. The host view supplies
+/// The container-configuration form shared by Run and Edit. Owns basic and disclosed
+/// options, row add/remove, and (run mode) name validation. The host view supplies
 /// the config binding and the surrounding chrome (header/warning/footer + the action).
 struct ContainerConfigForm: View {
     @Binding var config: ContainerRunConfig
@@ -29,7 +29,7 @@ struct ContainerConfigForm: View {
     @EnvironmentObject var rosettaService: RosettaService
     @EnvironmentObject var systemService: SystemService
 
-    @State private var selectedTab: ConfigTab = .basic
+    @State private var showMoreOptions = false
     /// The detected model provider the user chose to bridge into this container, by
     /// `ModelProvider.id`. Empty means "none" - the bridge section is opt-in.
     @State private var bridgeProviderID: String = ""
@@ -37,32 +37,39 @@ struct ContainerConfigForm: View {
     @State private var imagePlatforms: [String]?
     @State private var isLoadingPlatforms = false
 
-    enum ConfigTab: String, CaseIterable {
-        case basic = "Basic"
-        case ports = "Ports"
-        case volumes = "Volumes"
-        case environment = "Environment"
-        case advanced = "Advanced"
-
-        var icon: String {
-            switch self {
-            case .basic: return "gear"
-            case .ports: return "network"
-            case .volumes: return "externaldrive"
-            case .environment: return "rectangle.3.group"
-            case .advanced: return "slider.horizontal.3"
-            }
-        }
-    }
-
     var body: some View {
-        VStack(spacing: 0) {
-            tabPickerView
-            Divider()
-            ScrollView {
-                contentView
-                    .padding()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                basicNameView
+                Divider()
+                portsConfigView
+                Divider()
+                environmentConfigView
+                Divider()
+                Button {
+                    showMoreOptions.toggle()
+                } label: {
+                    Label("More options", systemImage: showMoreOptions ? "chevron.down" : "chevron.right")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("container-more-options")
+                .accessibilityValue(showMoreOptions ? "Expanded" : "Collapsed")
+                if showMoreOptions {
+                    VStack(alignment: .leading, spacing: 20) {
+                        advancedBasicsView
+                        Divider()
+                        volumesConfigView
+                        if mode == .run {
+                            Divider()
+                            modelBridgeSection
+                        }
+                        Divider()
+                        advancedConfigView
+                    }
+                    .padding(.top, 12)
+                }
             }
+            .padding()
         }
         .task {
             // Run mode populates the DNS/network pickers and defaults to the default domain.
@@ -91,55 +98,9 @@ struct ContainerConfigForm: View {
         .onChange(of: rosettaService.availability) { updatePlatformError() }
     }
 
-    private var tabPickerView: some View {
-        HStack(spacing: 0) {
-            ForEach(ConfigTab.allCases, id: \.self) { tab in
-                tabButton(for: tab)
-            }
-            Spacer()
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-        .background(Color(NSColor.controlBackgroundColor))
-    }
-
-    private func tabButton(for tab: ConfigTab) -> some View {
-        Button(action: { selectedTab = tab }) {
-            HStack(spacing: 6) {
-                SwiftUI.Image(systemName: tab.icon)
-                    .font(.subheadline)
-                Text(tab.rawValue)
-                    .font(.subheadline)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(selectedTab == tab ? Color.accentColor.opacity(0.2) : Color.clear)
-            .foregroundColor(selectedTab == tab ? .accentColor : .secondary)
-            .cornerRadius(6)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-    }
-
-    @ViewBuilder
-    private var contentView: some View {
-        switch selectedTab {
-        case .basic:
-            basicConfigView
-        case .ports:
-            portsConfigView
-        case .volumes:
-            volumesConfigView
-        case .environment:
-            environmentConfigView
-        case .advanced:
-            advancedConfigView
-        }
-    }
-
     // MARK: - Basic
 
-    private var basicConfigView: some View {
+    private var basicNameView: some View {
         VStack(alignment: .leading, spacing: 20) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Container Name")
@@ -147,6 +108,7 @@ struct ContainerConfigForm: View {
                     .fontWeight(.medium)
 
                 TextField("Enter container name", text: $config.name)
+                    .accessibilityIdentifier("container-name")
                     .textFieldStyle(.roundedBorder)
                     .disabled(mode == .edit)   // name is the identity; can't change on edit
                     .onChange(of: config.name) {
@@ -165,6 +127,11 @@ struct ContainerConfigForm: View {
                 }
             }
 
+        }
+    }
+
+    private var advancedBasicsView: some View {
+        VStack(alignment: .leading, spacing: 20) {
             if mode == .run {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("DNS Domain")
@@ -492,10 +459,11 @@ struct ContainerConfigForm: View {
                     .font(.subheadline)
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("container-add-port")
             }
 
             if mode == .edit {
-                Text("Note: Port mappings are not preserved from the original container. Please re-add them.")
+                Text("Review the preserved port mappings before saving.")
                     .font(.caption)
                     .foregroundColor(.orange)
                     .padding(.vertical, 8)
@@ -538,6 +506,7 @@ struct ContainerConfigForm: View {
                     .font(.subheadline)
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("container-add-mount")
             }
 
             if config.volumeMappings.isEmpty {
@@ -563,11 +532,6 @@ struct ContainerConfigForm: View {
 
     private var environmentConfigView: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if mode == .run {
-                modelBridgeSection
-                Divider()
-            }
-
             HStack {
                 Text("Environment Variables")
                     .font(.headline)
@@ -582,6 +546,7 @@ struct ContainerConfigForm: View {
                     .font(.subheadline)
                 }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("container-add-environment")
             }
 
             if config.environmentVariables.isEmpty {
@@ -946,13 +911,21 @@ struct VolumeMappingRow: View {
 
             HStack {
                 Toggle("Read-only", isOn: $mapping.readonly)
-                    .font(.caption)
+                    .accessibilityIdentifier("mount-read-only")
+                    .font(.subheadline)
                 Spacer()
                 if let hint {
                     Text(hint)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
+            }
+            if case .bind = mapping.kind {
+                Text("The container can read and change files in this folder with your permissions. Use Read-only unless it needs to write.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("host-mount-security-note")
             }
         }
         .padding(12)

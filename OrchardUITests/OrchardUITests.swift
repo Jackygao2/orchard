@@ -312,6 +312,56 @@ final class OrchardUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["fixture-private-value"].exists)
     }
 
+    @MainActor
+    func testRunFormDisclosesHostMountGuidance() throws {
+        let app = launchedApp()
+        let run = app.buttons["toolbar-run-container"]
+        XCTAssertTrue(run.waitForExistence(timeout: 20))
+        run.click()
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: 10))
+        XCTAssertTrue(sheet.descendants(matching: .any)["run-container-image"].exists)
+        XCTAssertTrue(sheet.descendants(matching: .any)["container-name"].exists)
+        XCTAssertTrue(sheet.buttons["container-add-port"].exists)
+        let scroll = sheet.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.65))
+        let more = sheet.descendants(matching: .any)["container-more-options"]
+        for _ in 0..<8 where !(more.exists && more.isHittable) {
+            scroll.scroll(byDeltaX: 0, deltaY: -180)
+        }
+        XCTAssertTrue(sheet.buttons["container-add-environment"].exists)
+        XCTAssertTrue(more.waitForExistence(timeout: 10))
+        XCTAssertFalse(sheet.buttons["container-add-mount"].exists)
+        more.click()
+        let addMount = sheet.buttons["container-add-mount"]
+        for _ in 0..<8 where !(addMount.exists && addMount.isHittable) {
+            scroll.scroll(byDeltaX: 0, deltaY: -180)
+        }
+        XCTAssertTrue(addMount.waitForExistence(timeout: 10))
+        addMount.click()
+        let note = sheet.descendants(matching: .any)["host-mount-security-note"]
+        for _ in 0..<5 where !(note.exists && note.isHittable) {
+            scroll.scroll(byDeltaX: 0, deltaY: -120)
+        }
+        XCTAssertTrue(note.waitForExistence(timeout: 10))
+        XCTAssertTrue(sheet.descendants(matching: .any)["mount-read-only"].exists)
+    }
+
+    @MainActor
+    func testEditUsesTheSameBasicFirstForm() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        app.staticTexts["uitest-db"].firstMatch.click()
+        let edit = app.buttons["Edit Configuration"]
+        XCTAssertTrue(edit.waitForExistence(timeout: 10))
+        edit.click()
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: 10))
+        XCTAssertTrue(sheet.descendants(matching: .any)["container-name"].exists)
+        XCTAssertTrue(sheet.buttons["container-add-port"].exists)
+        XCTAssertFalse(sheet.buttons["container-add-mount"].exists)
+        sheet.buttons["Cancel"].click()
+    }
+
     /// The #54 class: a failed user action must be visible. With the stub set to fail
     /// `stopContainer`, stopping the running container should surface the error alert.
     @MainActor

@@ -2,6 +2,19 @@ import Testing
 import Foundation
 @testable import Orchard
 
+@MainActor
+@Test("Editing prepopulates published port mappings")
+func editFormPreservesPublishedPorts() throws {
+    let ports = #"[{"hostPort":8080,"containerPort":80,"proto":"tcp","hostAddress":"127.0.0.1"}]"#
+    let container = try makeContainer(id: "web", status: "stopped", environment: ["EMPTY=", "TOKEN=a=b"], publishedPortsJSON: ports)
+    let config = EditContainerView.initialConfig(for: container)
+    #expect(config.portMappings.count == 1)
+    #expect(config.portMappings.first?.hostPort == "8080")
+    #expect(config.portMappings.first?.containerPort == "80")
+    #expect(config.portMappings.first?.hostAddress == "127.0.0.1")
+    #expect(config.environmentVariables.contains { $0.key == "EMPTY" && $0.value == "" })
+    #expect(config.environmentVariables.contains { $0.key == "TOKEN" && $0.value == "a=b" })
+}
 // Pure container-name validation extracted from the Run/Edit form.
 
 @MainActor

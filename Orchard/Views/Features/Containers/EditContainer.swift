@@ -21,11 +21,10 @@ struct EditContainerView: View {
     /// The form's starting point: the container's current configuration.
     static func initialConfig(for container: Container) -> ContainerRunConfig {
         let envVars = container.configuration.initProcess.environment.compactMap { envStr -> ContainerRunConfig.EnvironmentVariable? in
-            let components = envStr.split(separator: "=", maxSplits: 1)
-            guard components.count == 2 else { return nil }
+            guard let entry = EnvironmentValuePolicy.parse(envStr) else { return nil }
             return ContainerRunConfig.EnvironmentVariable(
-                key: String(components[0]),
-                value: String(components[1])
+                key: entry.key,
+                value: entry.value
             )
         }
 
@@ -54,7 +53,7 @@ struct EditContainerView: View {
             detached: true,
             removeAfterStop: false,
             environmentVariables: envVars,
-            portMappings: [], // Port mappings not available in container config
+            portMappings: container.configuration.publishedPortRows,
             volumeMappings: volumes,
             workingDirectory: container.configuration.initProcess.workingDirectory,
             // The executable lives separately from the arguments in the process config;
@@ -193,7 +192,7 @@ struct EditContainerView: View {
             do {
                 // The original goes along so a configuration the runtime refuses after the old
                 // container is deleted (an alias already taken, say) puts the container back. The
-                // form leaves ports to be re-added, but putting it back keeps the ones it had.
+                // form carries published ports forward, and recovery keeps the originals too.
                 var original = Self.initialConfig(for: container)
                 original.portMappings = container.configuration.publishedPortRows
                 try await containerListService.recreateContainer(

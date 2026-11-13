@@ -31,6 +31,7 @@ struct ComposeProjectDetailView: View {
     @State private var tab: ProjectTab = .running
     /// Set while Down asks what to do with the project's volumes.
     @State private var pendingDown: ComposeProject?
+    @State private var dryRunPlan: DryRunPlan?
 
     private var isBusy: Bool { composeService.busyProjects.contains(projectName) }
 
@@ -61,6 +62,9 @@ struct ComposeProjectDetailView: View {
             }
             .id(projectName)
             .composeDownConfirmation($pendingDown)
+            .sheet(item: $dryRunPlan) { plan in
+                ComposeDryRunSheet(plan: plan)
+            }
             .onAppear { composeService.refreshParses() }
         } else {
             Text("Project not found")
@@ -115,6 +119,18 @@ struct ComposeProjectDetailView: View {
                 .help("Copy the compose file's path")
             }
             if project.hasFile {
+                Button {
+                    Task {
+                        if let plan = await composeService.dryRun(project: project) {
+                            dryRunPlan = DryRunPlan(operations: plan.operations)
+                        }
+                    }
+                } label: {
+                    Label("Dry Run", systemImage: "list.bullet.clipboard")
+                }
+                .accessibilityIdentifier("compose-dry-run")
+                .disabled(isBusy || composeService.fileIsMissing(for: project))
+                .help("Preview an Up plan without making changes")
                 Button {
                     Task { await composeService.up(project: project) }
                 } label: {

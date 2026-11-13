@@ -255,6 +255,28 @@ final class ComposeService: ObservableObject {
         }
     }
 
+    /// Calculate an Up plan against a fresh Runtime snapshot without executing any operation.
+    func dryRun(project: ComposeProject) async -> Plan? {
+        guard !busyProjects.contains(project.name) else { return nil }
+        busyProjects.insert(project.name)
+        defer { busyProjects.remove(project.name) }
+        alertCenter.dismiss()
+        refreshParses()
+        guard let preview = parses[project.name] else {
+            alertCenter.error(unreadableFileMessage(for: project))
+            return nil
+        }
+        do {
+            let state = try await snapshot()
+            return try Planner.up(file: preview.file, project: preview.identity, state: state)
+        } catch let error as PlanError {
+            alertCenter.error(error.description)
+        } catch {
+            alertCenter.error("Could not prepare the plan: \(error.localizedDescription)")
+        }
+        return nil
+    }
+
     /// Why a project has no parse to bring up: the parser's own error, with the file and line,
     /// when there is a file that no longer reads.
     private func unreadableFileMessage(for project: ComposeProject) -> String {

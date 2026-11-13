@@ -448,4 +448,27 @@ final class OrchardUITests: XCTestCase {
         app.buttons["Cancel"].click()
     }
 
+    @MainActor
+    func testComposeDryRunShowsPlan() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try """
+        name: uitest-plan
+        services:
+          web:
+            image: nginx
+        """.write(to: directory.appendingPathComponent("compose.yaml"), atomically: true, encoding: .utf8)
+        let app = launchedApp(extraArguments: ["--uitest-compose-review", directory.path])
+        app.typeKey("3", modifierFlags: .command)
+        let add = app.buttons["compose-confirm-import"]
+        XCTAssertTrue(add.waitForExistence(timeout: 20))
+        add.click()
+        let dryRun = app.buttons["compose-dry-run"]
+        XCTAssertTrue(dryRun.waitForExistence(timeout: 20))
+        dryRun.click()
+        XCTAssertTrue(app.descendants(matching: .any)["compose-plan-operation-0"].waitForExistence(timeout: 20))
+        app.buttons["Done"].click()
+    }
+
 }

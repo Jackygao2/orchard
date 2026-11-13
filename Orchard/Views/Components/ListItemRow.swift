@@ -106,7 +106,7 @@ struct ListItemRow: View {
                             .padding(.vertical, 1.5)
                             .background(Capsule().fill(Color.orange.opacity(0.14)))
                             .lineLimit(1)
-                            .help("This project asks for something Orchard will not do")
+                            .help("This project asks for something ContainerDesk will not do")
                     }
                 }
 

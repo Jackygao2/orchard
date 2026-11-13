@@ -322,7 +322,7 @@ struct ClustersListView: View {
         alert.messageText = "Delete Cluster"
         alert.informativeText = "Are you sure you want to delete '\(cluster.name)'? This permanently removes the cluster's node containers and any workloads running on them."
             + (ClusterService.isStranded(cluster, containerVersion: systemService.containerVersion)
-                ? " Apple container's cluster plugin can't see this cluster, so Orchard deletes its node containers directly." : "")
+                ? " Apple container's cluster plugin can't see this cluster, so ContainerDesk deletes its node containers directly." : "")
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Delete")
         alert.addButton(withTitle: "Cancel")

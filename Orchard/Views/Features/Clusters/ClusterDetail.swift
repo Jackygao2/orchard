@@ -94,7 +94,7 @@ struct ClusterDetailView: View {
             }
             .confirmationDialog(
                 "Delete '\(cluster.name)'? This permanently removes the cluster's node containers and any workloads running on them."
-                    + (isStranded(cluster) ? " Apple container's cluster plugin can't see this cluster, so Orchard deletes its node containers directly." : ""),
+                    + (isStranded(cluster) ? " Apple container's cluster plugin can't see this cluster, so ContainerDesk deletes its node containers directly." : ""),
                 isPresented: $showDeleteConfirmation
             ) {
                 Button("Delete Cluster", role: .destructive) {
@@ -245,8 +245,8 @@ struct ClusterDetailView: View {
                 Text(shared ? "Uses this Mac's images" : "Doesn't see this Mac's images")
                     .font(.subheadline).fontWeight(.medium)
                 Text(shared
-                     ? "The nodes pull from this Mac's image store, so a pod can run an image built or pulled in Orchard without a registry."
-                     : "The nodes pull from registries only. To run images built or pulled in Orchard, recreate the cluster with Use local images on. Workloads in it are not kept.")
+                     ? "The nodes pull from this Mac's image store, so a pod can run an image built or pulled in ContainerDesk without a registry."
+                     : "The nodes pull from registries only. To run images built or pulled in ContainerDesk, recreate the cluster with Use local images on. Workloads in it are not kept.")
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 if !shared {
@@ -321,7 +321,7 @@ struct ClusterDetailView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Not listed by container cluster ls")
                     .font(.subheadline).fontWeight(.medium)
-                Text("Made before Apple container 1.7, so the CLI has no record of its settings and `container cluster ls` leaves it out. Orchard shows it from its node containers, and Delete and Write Kubeconfig still work.")
+                Text("Made before Apple container 1.7, so the CLI has no record of its settings and `container cluster ls` leaves it out. ContainerDesk shows it from its node containers, and Delete and Write Kubeconfig still work.")
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

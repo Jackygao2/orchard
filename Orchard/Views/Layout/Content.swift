@@ -133,7 +133,7 @@ struct ContentView: View {
                     showAddMachineSheet: $showAddMachineSheet,
                     showCreateClusterSheet: $showCreateClusterSheet,
                     listFocusedTab: _listFocusedTab,
-                    windowTitle: "Orchard"
+                    windowTitle: "ContainerDesk"
                 )
                 .navigationTitle("")
                 .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)

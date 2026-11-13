@@ -163,8 +163,8 @@ final class TerminalLauncher: ObservableObject {
         switch code {
         case -1743, -10004: // errAEEventNotPermitted, errAEPrivilegeError
             return """
-            Orchard isn't authorized to control \(appName). \
-            Allow it under System Settings → Privacy & Security → Automation → Orchard, \
+            ContainerDesk isn't authorized to control \(appName). \
+            Allow it under System Settings → Privacy & Security → Automation → ContainerDesk, \
             then try again.
             """
         case -600, -609: // procNotFound, connectionInvalid

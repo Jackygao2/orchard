@@ -162,6 +162,11 @@ struct GeneralSettingsView: View {
                     .foregroundColor(.secondary)
             }
 
+            Section("Credits") {
+                Text(AppBrand.orchardCredit)
+                Text("ContainerDesk contributors")
+            }
+
         }
         .formStyle(.grouped)
         .onAppear { containerShell = settings.containerShell }
@@ -187,7 +192,7 @@ struct GeneralSettingsView: View {
     }
 
     private var dnsFooter: String {
-        var text = "The local DNS domain new containers created in Orchard get by default, so they resolve as name.domain. Compose projects brought up in Orchard use it too; `container compose` in a terminal uses container's default."
+        var text = "The local DNS domain new containers created in ContainerDesk get by default, so they resolve as name.domain. Compose projects brought up in ContainerDesk use it too; `container compose` in a terminal uses container's default."
         if !dnsService.containerDNSDefaults.isEmpty {
             text += " The defaults above are set under `[container.dns]` in `~/.config/container/config.toml`, and apply to every container that doesn't set its own, as they do for `container run`. Edit that file, then restart container (`container system stop && container system start`), to change them."
         }
@@ -200,11 +205,11 @@ struct GeneralSettingsView: View {
     private var dockIconFooter: String {
         switch settings.dockIconMode {
         case .always:
-            return "Orchard is also available from the menu bar."
+            return "ContainerDesk is also available from the menu bar."
         case .whileWindowsOpen:
-            return "While one of its windows is open, Orchard shows its Dock icon and menu bar and can go full screen. When the last one closes, the Dock icon goes and Orchard leaves the Cmd-Tab app switcher, staying available from the menu bar."
+            return "While one of its windows is open, ContainerDesk shows its Dock icon and menu bar and can go full screen. When the last one closes, the Dock icon goes and ContainerDesk leaves the Cmd-Tab app switcher, staying available from the menu bar."
         case .never:
-            return "Orchard runs from the menu bar only and isn't in the Cmd-Tab app switcher. Its windows don't get Orchard's menu bar or go full screen, because macOS only gives those to apps with a Dock icon. Settings and Quit are in the menu bar panel."
+            return "ContainerDesk runs from the menu bar only and isn't in the Cmd-Tab app switcher. Its windows don't get ContainerDesk's menu bar or go full screen, because macOS only gives those to apps with a Dock icon. Settings and Quit are in the menu bar panel."
         }
     }
 }

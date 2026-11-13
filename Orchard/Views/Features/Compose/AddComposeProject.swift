@@ -48,7 +48,7 @@ struct ComposeReviewSheet: View {
                     if !blocking.isEmpty {
                         section(
                             title: "Will not be honoured",
-                            note: "These change what your services do. Orchard will create everything else and leave these out.",
+                            note: "These change what your services do. ContainerDesk will create everything else and leave these out.",
                             findings: blocking,
                             tint: .orange
                         )

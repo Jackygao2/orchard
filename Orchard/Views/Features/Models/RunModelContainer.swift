@@ -215,7 +215,7 @@ struct RunModelContainerView: View {
             }
 
             Divider()
-            Text("Isolation comes from Apple's per-container VM boundary plus the network you choose - Orchard adds none of its own. The model server must be bound to 0.0.0.0 for the container to reach it.")
+            Text("Isolation comes from Apple's per-container VM boundary plus the network you choose - ContainerDesk adds none of its own. The model server must be bound to 0.0.0.0 for the container to reach it.")
                 .font(.caption2)
                 .foregroundColor(.secondary)
         }

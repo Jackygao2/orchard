@@ -34,9 +34,9 @@ struct ComposeDNSDomainWording: Equatable {
 
         var text = orchard.map { "Services resolve as <container>.\($0)." }
             ?? "With no DNS domain, services can't reach each other by name."
-        text += " Orchard uses the DNS domain chosen in Settings, or container's default when "
+        text += " ContainerDesk uses the DNS domain chosen in Settings, or container's default when "
             + "none is chosen. `container compose` in a terminal always uses container's default "
-            + "from config.toml, which Orchard can't change. Containers pick up a new domain "
+            + "from config.toml, which ContainerDesk can't change. Containers pick up a new domain "
             + "when they are next recreated. Click to change it in Settings."
         explanation = text
     }

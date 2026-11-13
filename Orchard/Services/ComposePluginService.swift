@@ -418,7 +418,7 @@ final class ComposePluginService: ObservableObject {
     private func latestRelease() async throws -> Release {
         var request = URLRequest(url: Self.releaseAPI)
         // GitHub refuses API requests that do not identify themselves.
-        request.setValue("Orchard", forHTTPHeaderField: "User-Agent")
+        request.setValue("ContainerDesk", forHTTPHeaderField: "User-Agent")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
 
         let (data, response) = try await session.data(for: request)
@@ -455,7 +455,7 @@ final class ComposePluginService: ObservableObject {
 
     private func download(_ url: URL, to destination: URL) async throws {
         var request = URLRequest(url: url)
-        request.setValue("Orchard", forHTTPHeaderField: "User-Agent")
+        request.setValue("ContainerDesk", forHTTPHeaderField: "User-Agent")
 
         let (temporary, response) = try await session.download(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {

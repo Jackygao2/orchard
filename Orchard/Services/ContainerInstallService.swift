@@ -249,7 +249,7 @@ final class ContainerInstallService: ObservableObject {
 
     nonisolated static func fetch(_ url: URL, to destination: URL) async throws {
         var request = URLRequest(url: url)
-        request.setValue("Orchard", forHTTPHeaderField: "User-Agent")
+        request.setValue("ContainerDesk", forHTTPHeaderField: "User-Agent")
 
         let (temporary, response) = try await URLSession.shared.download(for: request)
         guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {

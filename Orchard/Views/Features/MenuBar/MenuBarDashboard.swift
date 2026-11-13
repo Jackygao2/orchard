@@ -171,7 +171,7 @@ struct MenuBarView: View {
                             NSApplication.shared.activate(ignoringOtherApps: true)
                         }
                     } label: {
-                        Text("Open Orchard").frame(maxWidth: .infinity)
+                        Text("Open ContainerDesk").frame(maxWidth: .infinity)
                     }
                     Button {
                         NSApplication.shared.activate(ignoringOtherApps: true)
@@ -186,8 +186,8 @@ struct MenuBarView: View {
                     } label: {
                         SwiftUI.Image(systemName: "power")
                     }
-                    .help("Quit Orchard")
-                    .accessibilityLabel("Quit Orchard")
+                    .help("Quit ContainerDesk")
+                    .accessibilityLabel("Quit ContainerDesk")
                 }
                 .font(.callout)
             }

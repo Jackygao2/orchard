@@ -488,7 +488,7 @@ final class ContainerListService: ObservableObject {
             candidates = try await backend.imagePlatforms(reference: config.image)
         } catch {
             throw OrchardError.generic(
-                "Orchard could not read which platforms \(config.image) offers "
+                "ContainerDesk could not read which platforms \(config.image) offers "
                     + "(\(error.localizedDescription)), so the container was kept. Pull the image and try again."
             )
         }

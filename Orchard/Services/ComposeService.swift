@@ -207,7 +207,7 @@ final class ComposeService: ObservableObject {
     private func ensureLoaded() -> Bool {
         if recordsLoaded { return true }
         guard let loaded = persistence.load() else {
-            alertCenter.error("Orchard could not read its saved compose projects, so nothing was changed. Try again.")
+            alertCenter.error("ContainerDesk could not read its saved compose projects, so nothing was changed. Try again.")
             return false
         }
         records = loaded
@@ -250,7 +250,7 @@ final class ComposeService: ObservableObject {
     /// Why a project has no parse to bring up: the parser's own error, with the file and line,
     /// when there is a file that no longer reads.
     private func unreadableFileMessage(for project: ComposeProject) -> String {
-        guard let url = project.fileURL else { return "Orchard has no compose file for `\(project.name)`." }
+        guard let url = project.fileURL else { return "ContainerDesk has no compose file for `\(project.name)`." }
         do {
             _ = try preview(fileURL: url)
         } catch let error as ParseError {
@@ -258,7 +258,7 @@ final class ComposeService: ObservableObject {
         } catch {
             return "Could not read \(url.lastPathComponent): \(error.localizedDescription)"
         }
-        return "Orchard has no compose file for `\(project.name)`."
+        return "ContainerDesk has no compose file for `\(project.name)`."
     }
 
     /// Take a project down, with or without a file.

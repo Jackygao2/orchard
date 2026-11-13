@@ -20,7 +20,7 @@ struct NotInstalledView: View {
                     .font(.title)
                     .fontWeight(.semibold)
 
-                Text("Orchard is a window onto Apple container, which runs the containers, images and machines it shows. Install container \(supportedContainerVersion) to get started.")
+                Text("ContainerDesk is a window onto Apple container, which runs the containers, images and machines it shows. Install container \(supportedContainerVersion) to get started.")
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 480)
             }

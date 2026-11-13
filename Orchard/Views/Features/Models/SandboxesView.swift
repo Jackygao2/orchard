@@ -45,7 +45,7 @@ struct SandboxesListView: View {
             } else {
                 List(selection: $selectedSandbox) {
                     if !orchard.isEmpty {
-                        Section("Orchard") {
+                        Section("Shared with Orchard") {
                             ForEach(orchard) { sandboxRow($0) }
                         }
                     }
@@ -224,7 +224,7 @@ struct SandboxDetailView: View {
 
     private func managedBy(_ source: Sandbox.Source) -> String {
         switch source {
-        case .orchard: return "Orchard"
+        case .orchard: return "Shared with Orchard"
         case .owned(let owner): return owner.name == owner.id ? owner.id : "\(owner.name) (\(owner.id))"
         case .detected: return "Unknown (detected from a model env var)"
         }

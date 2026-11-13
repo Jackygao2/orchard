@@ -13,7 +13,7 @@ struct VersionIncompatibilityView: View {
                     .font(.title)
                     .fontWeight(.semibold)
 
-                Text("This build of Orchard talks to Apple container \(supportedContainerVersion), but the installed container service is a different release the app can't communicate with.")
+                Text("This build of ContainerDesk talks to Apple container \(supportedContainerVersion), but the installed container service is a different release the app can't communicate with.")
                     .padding(.horizontal)
                     .multilineTextAlignment(.center)
 
@@ -25,7 +25,7 @@ struct VersionIncompatibilityView: View {
                         .padding(.horizontal)
                 }
 
-                Text("Update your container installation (or Orchard) so the versions match, then check again.")
+                Text("Update your container installation (or ContainerDesk) so the versions match, then check again.")
                     .font(.body)
                     .foregroundColor(.primary)
                     .multilineTextAlignment(.center)

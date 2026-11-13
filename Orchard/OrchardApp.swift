@@ -36,7 +36,7 @@ struct OrchardApp: App {
                 .keyboardShortcut("k", modifiers: .command)
             }
             CommandGroup(replacing: .help) {
-                Button("Orchard Help") {
+                Button("Orchard Documentation") {
                     if let url = URL(string: "https://github.com/andrew-waters/orchard") {
                         NSWorkspace.shared.open(url)
                     }

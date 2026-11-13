@@ -240,7 +240,7 @@ struct BuildStatusLine: View {
         case .interrupted:
             HStack(alignment: .top, spacing: 8) {
                 SwiftUI.Image(systemName: "questionmark.circle").foregroundStyle(.orange)
-                Text("Interrupted: Orchard quit while this build was running. The image may still have been built.")
+                Text("Interrupted: ContainerDesk quit while this build was running. The image may still have been built.")
                     .font(.subheadline).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }

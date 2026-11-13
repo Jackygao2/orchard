@@ -108,7 +108,7 @@ struct ComposeProjectsListView: View {
             )
         case .olderThanOrchard:
             return banner(
-                title: "container compose \(installed) is older than Orchard's",
+                title: "container compose \(installed) is older than ContainerDesk's",
                 detail: consequence,
                 action: "Update",
                 isUpdate: true
@@ -245,7 +245,7 @@ struct ComposeProjectsListView: View {
         let alert = NSAlert()
         alert.messageText = "Forget '\(project.name)'?"
         alert.informativeText = """
-            Orchard will stop tracking this compose file. The project's containers are left \
+            ContainerDesk will stop tracking this compose file. The project's containers are left \
             exactly as they are, running or not, and the project will still appear here for as \
             long as they exist.
             """

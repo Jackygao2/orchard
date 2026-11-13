@@ -62,7 +62,7 @@ struct ModelsListView: View {
             } else {
                 List(selection: $selectedModel) {
                     if !modelServerService.servers.isEmpty {
-                        Section("Managed by Orchard") {
+                        Section("Managed by ContainerDesk") {
                             ForEach(modelServerService.servers) { server in
                                 ListItemRow(
                                     icon: "cpu",
@@ -317,7 +317,7 @@ struct ModelDetailView: View {
                         Button(action: { setProbing(false, id: provider.id) }) {
                             Label("Stop probing", systemImage: "pause.circle")
                         }
-                        .help("Stop Orchard contacting this address. It stays in the list under Not probed.")
+                        .help("Stop ContainerDesk contacting this address. It stays in the list under Not probed.")
                     }
                 }
                 .font(.subheadline)
@@ -382,7 +382,7 @@ struct ModelDetailView: View {
 
             Text(endpoint.isEnabled
                  ? "Nothing is answering at this address. It stays in the list so you can re-point it or switch it off."
-                 : "Orchard is not contacting this address. Nothing here is probed, so a server running on it won't be detected.")
+                 : "ContainerDesk is not contacting this address. Nothing here is probed, so a server running on it won't be detected.")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -397,7 +397,7 @@ struct ModelDetailView: View {
 
     private func addressEditor(_ endpoint: ModelEndpoint) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Address Orchard probes").font(.caption).foregroundColor(.secondary)
+            Text("Address ContainerDesk probes").font(.caption).foregroundColor(.secondary)
             HStack(spacing: 6) {
                 TextField("Host", text: draftHost)
                     .textFieldStyle(.roundedBorder)
@@ -513,7 +513,7 @@ struct ModelDetailView: View {
         case .failed(let message):
             Text(message).font(.caption2).foregroundColor(.orange)
         case .saved where stillLocked:
-            Text("Key saved to your keychain, but the server still rejected the probe. Check the key, or stop probing this address so Orchard leaves it alone.")
+            Text("Key saved to your keychain, but the server still rejected the probe. Check the key, or stop probing this address so ContainerDesk leaves it alone.")
                 .font(.caption2)
                 .foregroundColor(.orange)
         case .saved:

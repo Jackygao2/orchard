@@ -92,7 +92,7 @@ final class ImageBuildService: ObservableObject {
             var build = build
             build.phase = .interrupted
             build.finishedAt = build.finishedAt ?? Date()
-            build.outputLines.append("Orchard quit while this build was running; the result was not tracked (the image may still have been built).")
+            build.outputLines.append("ContainerDesk quit while this build was running; the result was not tracked (the image may still have been built).")
             return build
         }
     }

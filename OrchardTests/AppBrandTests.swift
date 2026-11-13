@@ -19,3 +19,9 @@ func productHasNoUpdateFeed() {
     #expect(Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") == nil)
     #expect(Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") == nil)
 }
+
+@Test("Product credits preserve Orchard's copyright and license")
+func productCredits() {
+    #expect(AppBrand.orchardCredit.contains("Andrew Waters"))
+    #expect(AppBrand.orchardCredit.contains("MIT License"))
+}

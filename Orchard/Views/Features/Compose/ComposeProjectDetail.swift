@@ -196,7 +196,7 @@ struct ComposeProjectDetailView: View {
                 Label(
                     project.hasFile
                         ? "Everything in this file is supported."
-                        : "Orchard has no compose file for this project, so there is nothing to check.",
+                        : "ContainerDesk has no compose file for this project, so there is nothing to check.",
                     systemImage: project.hasFile ? "checkmark.circle" : "questionmark.circle"
                 )
                 .foregroundStyle(project.hasFile ? .green : .secondary)

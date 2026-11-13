@@ -360,6 +360,8 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(running.label.contains("1"))
         XCTAssertTrue(app.descendants(matching: .any)["overview-stopped"].label.contains("1"))
         XCTAssertTrue(app.descendants(matching: .any)["overview-images"].label.contains("1"))
+        XCTAssertTrue(app.descendants(matching: .any)["overview-projects"].label.contains("0"))
+        XCTAssertTrue(app.descendants(matching: .any)["overview-volumes"].label.contains("0"))
         app.buttons["overview-run"].click()
         XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 10))
         app.sheets.firstMatch.buttons["Cancel"].click()

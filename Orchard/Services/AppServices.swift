@@ -40,7 +40,10 @@ final class AppServices: ObservableObject {
         if isUITestMockBackendRequested {
             // The stub backend is the container install; whether the machine running the
             // suite has one is beside the point.
-            return AppServices(backend: UITestBackend(), machineBackend: UITestMachineBackend(), modelBackend: UITestModelBackend(), modelServerEngine: UITestModelServerEngine(), runner: UITestCommandRunner(), isContainerInstalled: { true }, rosettaService: RosettaService(probe: { .installed }, installer: {}), simulateTerminal: true)
+            let testRecords = FileManager.default.temporaryDirectory
+                .appendingPathComponent("containerdesk-ui-\(UUID().uuidString)", isDirectory: true)
+                .appendingPathComponent("compose-projects.json")
+            return AppServices(backend: UITestBackend(), machineBackend: UITestMachineBackend(), modelBackend: UITestModelBackend(), modelServerEngine: UITestModelServerEngine(), runner: UITestCommandRunner(), isContainerInstalled: { true }, rosettaService: RosettaService(probe: { .installed }, installer: {}), simulateTerminal: true, composePersistence: ComposeProjectsPersistence(fileURL: testRecords))
         }
         #endif
         let services = AppServices()
@@ -66,7 +69,8 @@ final class AppServices: ObservableObject {
         secrets: SecretsStore = KeychainSecretsStore(),
         isContainerInstalled: (@MainActor () -> Bool)? = nil,
         rosettaService: RosettaService? = nil,
-        simulateTerminal: Bool = false
+        simulateTerminal: Bool = false,
+        composePersistence: ComposeProjectsPersistence = ComposeProjectsPersistence()
     ) {
         let alertCenter = AlertCenter()
         self.alertCenter = alertCenter
@@ -110,7 +114,8 @@ final class AppServices: ObservableObject {
         let composeService = ComposeService(
             backend: backend,
             buildService: imageBuildService,
-            alertCenter: alertCenter
+            alertCenter: alertCenter,
+            persistence: composePersistence
         )
         self.composeService = composeService
         // Only ever informs: a missing CLI plugin changes nothing about what the window can do.

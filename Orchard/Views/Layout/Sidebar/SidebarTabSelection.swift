@@ -57,7 +57,7 @@ enum TabSelection: String, CaseIterable {
         case .containers:
             return "Containers"
         case .compose:
-            return "Compose"
+            return "Compose Projects"
         case .images:
             return "Images"
         case .builds:
@@ -83,7 +83,7 @@ enum TabSelection: String, CaseIterable {
         case .systemLogs:
             return "System Logs"
         case .dashboard:
-            return "Dashboard"
+            return "Overview"
         }
     }
 }

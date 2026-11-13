@@ -36,6 +36,17 @@ struct OrchardApp: App {
             }
             CommandGroup(after: .sidebar) {
                 Divider()
+                ForEach(Array([TabSelection.dashboard, .containers, .compose, .images, .volumes, .networks].enumerated()), id: \.offset) { index, tab in
+                    Button(tab.title) {
+                        NotificationCenter.default.post(name: NSNotification.Name("NavigatePrimaryTab"), object: tab.rawValue)
+                    }
+                    .keyboardShortcut(KeyEquivalent(Character(String(index + 1))), modifiers: .command)
+                }
+                Divider()
+                Button("Search") {
+                    NotificationCenter.default.post(name: NSNotification.Name("FocusNavigationSearch"), object: nil)
+                }
+                .keyboardShortcut("f", modifiers: .command)
                 Button("Command Palette...") {
                     NotificationCenter.default.post(
                         name: NSNotification.Name("ToggleCommandPalette"), object: nil)

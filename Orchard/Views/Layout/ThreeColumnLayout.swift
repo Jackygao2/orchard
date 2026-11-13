@@ -124,6 +124,31 @@ struct ThreeColumnLayout: View {
                 VStack(spacing: 0) {
                     // Translucent header like Mail with search
                     VStack(spacing: 8) {
+                        if selectedTab == .images || selectedTab == .builds {
+                            Picker("Images", selection: $selectedTab) {
+                                Text("Local").tag(TabSelection.images)
+                                Text("Builds").tag(TabSelection.builds)
+                            }
+                            .pickerStyle(.segmented)
+                            .accessibilityIdentifier("images-segments")
+                            .padding(.top, 34)
+                        } else if selectedTab == .volumes || selectedTab == .mounts {
+                            Picker("Volumes", selection: $selectedTab) {
+                                Text("Volumes").tag(TabSelection.volumes)
+                                Text("Mounts").tag(TabSelection.mounts)
+                            }
+                            .pickerStyle(.segmented)
+                            .accessibilityIdentifier("volumes-segments")
+                            .padding(.top, 34)
+                        } else if selectedTab == .networks || selectedTab == .dns {
+                            Picker("Networks", selection: $selectedTab) {
+                                Text("Networks").tag(TabSelection.networks)
+                                Text("DNS").tag(TabSelection.dns)
+                            }
+                            .pickerStyle(.segmented)
+                            .accessibilityIdentifier("networks-segments")
+                            .padding(.top, 34)
+                        }
                         // Search and filters
                         if selectedTab != .registries && selectedTab != .systemLogs
                             && selectedTab != .models && selectedTab != .sandboxes {
@@ -136,6 +161,7 @@ struct ThreeColumnLayout: View {
                                     TextField("Search \(selectedTab.title.lowercased())", text: $searchText)
                                         .textFieldStyle(.plain)
                                         .font(.system(size: 12))
+                                        .accessibilityIdentifier("search-\(selectedTab.rawValue)")
                                 }
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
@@ -559,6 +585,9 @@ struct TabColumnView: View {
     // rather than key-window notifications so a transient context menu (which briefly takes
     // key away from the window) doesn't leave the sidebar stuck dimmed.
     @Environment(\.controlActiveState) private var controlActiveState
+    @Environment(\.openSettings) private var openSettings
+    @AppStorage("ContainerDeskShowAdvanced") private var showAdvanced = true
+    @State private var advancedExpanded = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -584,59 +613,31 @@ struct TabColumnView: View {
 
    private var sidebarList: some View {
        List {
-           // Dashboard sits at the very top.
            Section {
                sidebarRow(for: .dashboard)
-           }
-
-           // Compute: the runtime primitives - containers, machines, and sandboxes
-           // (containers wired to a local model).
-           Section {
                sidebarRow(for: .containers)
                sidebarRow(for: .compose)
-               sidebarRow(for: .machines)
-               sidebarRow(for: .clusters)
-               sidebarRow(for: .sandboxes)
-           } header: {
-               HStack {
-                   Text("Compute")
-                       .font(.system(size: 12, weight: .regular))
-                       .foregroundColor(.secondary.opacity(0.5))
-                   Spacer()
-               }
-               .padding(.leading, 16)
-           }
-
-           // Resources: the artifacts those runtimes consume, including local AI models.
-           Section {
-               sidebarRow(for: .models)
                sidebarRow(for: .images)
-               sidebarRow(for: .builds)
-               sidebarRow(for: .mounts)
                sidebarRow(for: .volumes)
-           } header: {
-               HStack {
-                   Text("Resources")
-                       .font(.system(size: 12, weight: .regular))
-                       .foregroundColor(.secondary.opacity(0.5))
-                   Spacer()
-               }
-               .padding(.leading, 16)
-           }
-
-           // Networking section
-           Section {
-               sidebarRow(for: .dns)
                sidebarRow(for: .networks)
-           } header: {
-               HStack {
-                   Text("Networking")
-                       .font(.system(size: 12, weight: .regular))
-                       .foregroundColor(.secondary.opacity(0.5))
-                   Spacer()
-               }
-               .padding(.leading, 16)
            }
+           if showAdvanced {
+               Button {
+                   advancedExpanded.toggle()
+               } label: {
+                   Label("Advanced", systemImage: advancedExpanded ? "chevron.down" : "chevron.right")
+               }
+               .accessibilityValue(advancedExpanded ? "Expanded" : "Collapsed")
+               .accessibilityIdentifier("sidebar-advanced")
+               if advancedExpanded {
+                   sidebarRow(for: .machines)
+                   sidebarRow(for: .clusters)
+                   sidebarRow(for: .models)
+                   sidebarRow(for: .sandboxes)
+               }
+           }
+           Button { openSettings() } label: { Label("Settings", systemImage: "gearshape") }
+               .accessibilityIdentifier("sidebar-settings")
        }
        .listStyle(.sidebar)
        .scrollContentBackground(.hidden)
@@ -664,7 +665,7 @@ struct TabColumnView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(
-            selectedTab == tab ? Color.secondary.opacity(0.1) : Color.clear,
+            (selectedTab == tab || (tab == .images && selectedTab == .builds) || (tab == .volumes && selectedTab == .mounts) || (tab == .networks && selectedTab == .dns)) ? Color.secondary.opacity(0.1) : Color.clear,
             in: RoundedRectangle(cornerRadius: 8)
         )
         .contentShape(Rectangle())

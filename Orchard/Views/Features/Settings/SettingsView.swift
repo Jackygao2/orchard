@@ -19,6 +19,20 @@ struct SettingsView: View {
                 .tabItem {
                     Label("System", systemImage: "cpu")
                 }
+
+            RegistriesDetailView()
+                .tabItem {
+                    Label("Registries", systemImage: "server.rack")
+                }
+
+            VStack {
+                Text("System Logs").font(.title)
+                Text("Coming Soon").foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .tabItem {
+                Label("System Logs", systemImage: "doc.text.below.ecg")
+            }
         }
         .frame(width: 540, height: 460)
         // Loaded once here rather than per-tab: macOS TabView builds both tabs when the
@@ -36,6 +50,7 @@ struct SettingsView: View {
 /// Genuine app preferences: which terminal to open shells in, which `container` binary to
 /// drive, the default DNS domain, and software updates.
 struct GeneralSettingsView: View {
+    @AppStorage("ContainerDeskShowAdvanced") private var showAdvanced = true
     @EnvironmentObject var settings: SettingsStore
     @EnvironmentObject var alertCenter: AlertCenter
     @EnvironmentObject var updater: UpdaterService
@@ -47,6 +62,8 @@ struct GeneralSettingsView: View {
 
     var body: some View {
         Form {
+            Toggle("Show Advanced", isOn: $showAdvanced)
+                .accessibilityIdentifier("settings-show-advanced")
             Section {
                 Picker("Terminal Application", selection: Binding(
                     get: { settings.preferredTerminal },

@@ -39,6 +39,101 @@ final class OrchardUITests: XCTestCase {
         XCTFail("Containers list did not render after selecting the Containers tab")
     }
 
+    @MainActor
+    func testGroupedResourceNavigation() throws {
+        let app = launchedApp()
+        for (tab, choice, search) in [
+            ("images", "Builds", "search-builds"),
+            ("volumes", "Mounts", "search-mounts"),
+            ("networks", "DNS", "search-dns")
+        ] {
+            let button = app.buttons["sidebar-\(tab)"]
+            XCTAssertTrue(button.waitForExistence(timeout: 20))
+            button.click()
+            let option = app.radioButtons[choice]
+            XCTAssertTrue(option.waitForExistence(timeout: 10), "Missing \(choice)")
+            option.click()
+            XCTAssertTrue(app.descendants(matching: .any)[search].waitForExistence(timeout: 10), "Missing \(search)")
+        }
+    }
+
+    @MainActor
+    func testToolbarShowsRuntimeAndRunAction() throws {
+        let app = launchedApp()
+        XCTAssertTrue(app.descendants(matching: .any)["toolbar-runtime-status"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.buttons["toolbar-refresh"].exists)
+        let run = app.buttons["toolbar-run-container"]
+        XCTAssertTrue(run.exists)
+        run.click()
+        XCTAssertTrue(app.descendants(matching: .any)["run-container-image"].waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testPrimaryNavigationShortcuts() throws {
+        let app = launchedApp()
+        for (key, identifier) in [
+            ("1", "overview-content"), ("2", "search-containers"),
+            ("3", "search-compose"), ("4", "search-images"),
+            ("5", "search-volumes"), ("6", "search-networks")
+        ] {
+            app.typeKey(key, modifierFlags: .command)
+            XCTAssertTrue(app.descendants(matching: .any)[identifier].waitForExistence(timeout: 10),
+                          "Command-\(key) did not open \(identifier)")
+        }
+    }
+
+    @MainActor
+    func testAdvancedVisibilitySetting() throws {
+        let app = launchedApp()
+        let settings = app.buttons["sidebar-settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 20))
+        settings.click()
+        let general = app.buttons["General"]
+        XCTAssertTrue(general.waitForExistence(timeout: 10))
+        general.click()
+        let toggle = app.descendants(matching: .any)["settings-show-advanced"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+        guard let original = toggle.value as? Int else { return XCTFail("Advanced preference has no checkbox value") }
+        if original != 1 { toggle.click() }
+        defer { if (toggle.value as? Int) != original { toggle.click() } }
+        toggle.click()
+        XCTAssertFalse(app.buttons["sidebar-advanced"].exists)
+        toggle.click()
+        XCTAssertTrue(app.buttons["sidebar-advanced"].waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testAdvancedDestinationsAreReachable() throws {
+        let app = launchedApp()
+        let disclosure = app.buttons["sidebar-advanced"]
+        XCTAssertTrue(disclosure.waitForExistence(timeout: 20))
+        disclosure.click()
+        for (tab, content) in [
+            ("machines", "search-machines"), ("clusters", "search-clusters"),
+            ("models", "advanced-models-content"), ("sandboxes", "advanced-sandboxes-content")
+        ] {
+            let row = app.buttons["sidebar-\(tab)"]
+            XCTAssertTrue(row.waitForExistence(timeout: 10))
+            row.click()
+            XCTAssertTrue(app.descendants(matching: .any)[content].waitForExistence(timeout: 10),
+                          "Advanced destination \(tab) did not render")
+        }
+    }
+
+    @MainActor
+    func testRegistryAndSystemLogSettings() throws {
+        let app = launchedApp()
+        let settings = app.buttons["sidebar-settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 20))
+        settings.click()
+        let registries = app.buttons["Registries"]
+        XCTAssertTrue(registries.waitForExistence(timeout: 10))
+        registries.click()
+        XCTAssertTrue(app.windows["Registries"].waitForExistence(timeout: 10))
+        app.buttons["System Logs"].click()
+        XCTAssertTrue(app.windows["System Logs"].waitForExistence(timeout: 10))
+    }
+
     /// The "#54 class" of bug: the app is up but everything is broken/empty — invisible to
     /// service unit tests. If the seeded container renders in the Containers list, launch +
     /// system-status + container list + the per-service environment injection all worked.

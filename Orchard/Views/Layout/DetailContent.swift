@@ -136,10 +136,13 @@ struct DetailContentView: View {
                 selectedTab: $selectedTabBinding,
                 selectedContainer: $selectedContainerBinding
             )
+            .accessibilityIdentifier("overview-content")
         case .models:
             ModelDetailView(selectedModel: selectedModel)
+                .accessibilityIdentifier("advanced-models-content")
         case .sandboxes:
             SandboxDetailView(selectedSandbox: selectedSandbox)
+                .accessibilityIdentifier("advanced-sandboxes-content")
         }
     }
 

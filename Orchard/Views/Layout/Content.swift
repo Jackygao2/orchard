@@ -5,6 +5,7 @@ struct ContentView: View {
     @EnvironmentObject var systemService: SystemService
     @EnvironmentObject var containerInstallService: ContainerInstallService
     @EnvironmentObject var containerListService: ContainerListService
+    @EnvironmentObject var composeService: ComposeService
     @EnvironmentObject var imageService: ImageService
     @EnvironmentObject var dnsService: DNSService
     @EnvironmentObject var networkService: NetworkService
@@ -69,6 +70,7 @@ struct ContentView: View {
     @State private var initialLoadTask: Task<Void, Never>?
 
     @FocusState private var listFocusedTab: TabSelection?
+    @FocusState private var toolbarSearchFocused: Bool
 
 
     @State private var showingCommandPalette = false
@@ -137,6 +139,44 @@ struct ContentView: View {
                 )
                 .navigationTitle("")
                 .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+                .toolbar {
+                    ToolbarItemGroup {
+                        TextField("Search", text: $searchText)
+                            .frame(width: 150)
+                            .focused($toolbarSearchFocused)
+                            .accessibilityIdentifier("toolbar-search")
+                        Menu {
+                            Button("Start") { Task { await systemService.startSystem() } }
+                            Button("Stop") { Task { await systemService.stopSystem() } }
+                            Button("Restart") { Task { await systemService.restartSystem() } }
+                        } label: {
+                            Label(systemService.systemStatus.text.capitalized, systemImage: "circle.fill")
+                                .foregroundStyle(systemService.systemStatus.color)
+                        }
+                        .accessibilityIdentifier("toolbar-runtime-status")
+                        Button { Task { await performInitialLoad() } } label: {
+                            Label("Refresh", systemImage: "arrow.clockwise")
+                        }
+                        .keyboardShortcut("r", modifiers: .command)
+                        .accessibilityIdentifier("toolbar-refresh")
+                        Menu("Quick Actions") {
+                            Button("Pull Image") { handlePaletteAction(.showImageSearch) }
+                            Button("Build Image") { handlePaletteAction(.showBuildImage) }
+                            Button("Open Compose Project") {
+                                selectedTab = .compose
+                                ComposeAddFlow.present(service: composeService)
+                            }
+                            .keyboardShortcut("o", modifiers: [.command, .shift])
+                            Button("New Volume") { handlePaletteAction(.showCreateVolumeSheet) }
+                            Button("New Network") { handlePaletteAction(.showAddNetworkSheet) }
+                        }
+                        .accessibilityIdentifier("toolbar-quick-actions")
+                        Button("Run Container") { handlePaletteAction(.showRunContainerSheet) }
+                            .keyboardShortcut("n", modifiers: .command)
+                            .buttonStyle(.borderedProminent)
+                            .accessibilityIdentifier("toolbar-run-container")
+                    }
+                }
             }
         }
     }
@@ -484,6 +524,13 @@ struct ContentView: View {
             NotificationCenter.default.publisher(for: NSNotification.Name("ToggleCommandPalette"))
         ) { _ in
             toggleCommandPalette()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigatePrimaryTab"))) { notification in
+            guard let rawValue = notification.object as? String, let tab = TabSelection(rawValue: rawValue) else { return }
+            selectedTab = tab
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("FocusNavigationSearch"))) { _ in
+            toolbarSearchFocused = true
         }
         .onOpenURL { url in
             guard let link = DeepLink.parse(url) else { return }

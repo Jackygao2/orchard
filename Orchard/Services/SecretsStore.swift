@@ -18,7 +18,7 @@ protocol SecretsStore: Sendable {
 struct KeychainSecretsStore: SecretsStore {
     let service: String
 
-    init(service: String = "dev.andon.orchard.model-api-keys") {
+    init(service: String = AppBrand.keychainService) {
         self.service = service
     }
 

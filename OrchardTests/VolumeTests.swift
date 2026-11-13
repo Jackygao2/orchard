@@ -231,6 +231,6 @@ func mountRowCompleteness() {
 
 @Test("DeepLink: a volume link carries its name")
 func deepLinkVolume() {
-    #expect(URL(string: "orchard://volume/pgdata").flatMap(DeepLink.parse) == .volume("pgdata"))
-    #expect(URL(string: "orchard://volumes").flatMap(DeepLink.parse) == .tab(.volumes))
+    #expect(URL(string: "containerdesk://volume/pgdata").flatMap(DeepLink.parse) == .volume("pgdata"))
+    #expect(URL(string: "containerdesk://volumes").flatMap(DeepLink.parse) == .tab(.volumes))
 }

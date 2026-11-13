@@ -21,7 +21,7 @@ enum DeepLink: Equatable {
     case volume(String)
 
     static func parse(_ url: URL) -> DeepLink? {
-        guard url.scheme?.lowercased() == "orchard", let host = url.host else { return nil }
+        guard url.scheme?.lowercased() == AppBrand.urlScheme, let host = url.host else { return nil }
         // Everything after "orchard://<host>/", undoing percent-encoding but
         // keeping interior slashes (image references contain them).
         let identifier = url.path

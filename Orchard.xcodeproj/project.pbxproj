@@ -34,6 +34,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CD0000000000000000000001 /* Branding.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Branding.xcconfig; sourceTree = "<group>"; };
 		C25FE6E72E00C69400A8CD32 /* Orchard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Orchard.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C25FE6F52E00C69500A8CD32 /* OrchardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OrchardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C25FE6FF2E00C69500A8CD32 /* OrchardUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OrchardUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -92,6 +93,7 @@
 		C25FE6DE2E00C69400A8CD32 = {
 			isa = PBXGroup;
 			children = (
+				CD0000000000000000000001 /* Branding.xcconfig */,
 				C25FE6E92E00C69400A8CD32 /* Orchard */,
 				C25FE6F82E00C69500A8CD32 /* OrchardTests */,
 				C25FE7022E00C69500A8CD32 /* OrchardUITests */,
@@ -414,6 +416,7 @@
 		};
 		C25FE70A2E00C69500A8CD32 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CD0000000000000000000001 /* Branding.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -424,8 +427,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Orchard/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(CD_PRODUCT_NAME)";
+				INFOPLIST_KEY_CFBundleName = "$(CD_PRODUCT_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Orchard opens container shells in your preferred terminal app (Terminal or iTerm2), which requires permission to send it Apple events.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "$(CD_PRODUCT_NAME) opens container shells in your preferred terminal app (Terminal or iTerm2), which requires permission to send it Apple events.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -441,8 +446,9 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 2.7.1;
-				PRODUCT_BUNDLE_IDENTIFIER = "container-compose.Orchard";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CD_BUNDLE_IDENTIFIER)";
+				PRODUCT_NAME = "$(CD_PRODUCT_NAME)";
+				PRODUCT_MODULE_NAME = Orchard;
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = macosx;
@@ -455,6 +461,7 @@
 		};
 		C25FE70B2E00C69500A8CD32 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = CD0000000000000000000001 /* Branding.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -465,8 +472,10 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Orchard/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "$(CD_PRODUCT_NAME)";
+				INFOPLIST_KEY_CFBundleName = "$(CD_PRODUCT_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
-				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Orchard opens container shells in your preferred terminal app (Terminal or iTerm2), which requires permission to send it Apple events.";
+				INFOPLIST_KEY_NSAppleEventsUsageDescription = "$(CD_PRODUCT_NAME) opens container shells in your preferred terminal app (Terminal or iTerm2), which requires permission to send it Apple events.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -482,8 +491,9 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 2.7.1;
-				PRODUCT_BUNDLE_IDENTIFIER = "container-compose.Orchard";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(CD_BUNDLE_IDENTIFIER)";
+				PRODUCT_NAME = "$(CD_PRODUCT_NAME)";
+				PRODUCT_MODULE_NAME = Orchard;
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = macosx;
@@ -511,7 +521,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Orchard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Orchard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ContainerDesk.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ContainerDesk";
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Debug;
@@ -533,7 +543,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Orchard.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Orchard";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ContainerDesk.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ContainerDesk";
 				XROS_DEPLOYMENT_TARGET = 2.5;
 			};
 			name = Release;

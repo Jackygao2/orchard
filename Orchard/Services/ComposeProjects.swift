@@ -147,9 +147,7 @@ struct ComposeProjectsPersistence: Sendable {
     }
 
     static func defaultURL() -> URL {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? FileManager.default.temporaryDirectory
-        return base.appendingPathComponent("Orchard", isDirectory: true)
+        return AppBrand.applicationSupportDirectory()
             .appendingPathComponent("compose-projects.json")
     }
 

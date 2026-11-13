@@ -1,0 +1,3 @@
+CD_PRODUCT_NAME = ContainerDesk
+CD_BUNDLE_IDENTIFIER = local.containerdesk
+CD_URL_SCHEME = containerdesk

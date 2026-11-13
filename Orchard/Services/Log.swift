@@ -2,7 +2,7 @@ import OSLog
 
 /// Categorized loggers. Filter in Console.app by subsystem `dev.andon.orchard`.
 enum Log {
-    private static let subsystem = "dev.andon.orchard"
+    private static let subsystem = AppBrand.bundleIdentifier
 
     static let cli = Logger(subsystem: subsystem, category: "cli")
     static let xpc = Logger(subsystem: subsystem, category: "xpc")

@@ -6,8 +6,22 @@ import SwiftUI
 @MainActor
 final class ContainerListService: ObservableObject {
     @Published var containers: [Container] = [] {
-        didSet { allMounts = Self.computeMounts(containers) }
+        didSet {
+            allMounts = Self.computeMounts(containers)
+            if observedInitialContainers {
+                let before = Dictionary(oldValue.map { ($0.configuration.id, $0.status) }, uniquingKeysWith: { first, _ in first })
+                for container in containers {
+                    if let old = before[container.configuration.id], old.lowercased() != container.status.lowercased() {
+                        recentActivity.insert(ContainerTransition(id: UUID(), containerID: container.configuration.id, from: old, to: container.status, observedAt: Date()), at: 0)
+                    }
+                }
+                if recentActivity.count > 10 { recentActivity = Array(recentActivity.prefix(10)) }
+            }
+            observedInitialContainers = true
+        }
     }
+    @Published private(set) var recentActivity: [ContainerTransition] = []
+    private var observedInitialContainers = false
     /// Unique mounts across the current containers. Recomputed only when `containers`
     /// changes, not on every read - several views read it on each objectWillChange tick.
     @Published private(set) var allMounts: [ContainerMount] = []

@@ -347,6 +347,47 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testOverviewCountsAndRunAction() throws {
+        let app = launchedApp()
+        let overview = app.buttons["sidebar-dashboard"]
+        XCTAssertTrue(overview.waitForExistence(timeout: 20))
+        let running = app.descendants(matching: .any)["overview-running"]
+        for _ in 0..<5 where !running.exists {
+            overview.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+            if running.waitForExistence(timeout: 3) { break }
+        }
+        XCTAssertTrue(running.waitForExistence(timeout: 10))
+        XCTAssertTrue(running.label.contains("1"))
+        XCTAssertTrue(app.descendants(matching: .any)["overview-stopped"].label.contains("1"))
+        XCTAssertTrue(app.descendants(matching: .any)["overview-images"].label.contains("1"))
+        app.buttons["overview-run"].click()
+        XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 10))
+        app.sheets.firstMatch.buttons["Cancel"].click()
+        for _ in 0..<5 where !running.exists {
+            overview.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()
+            if running.waitForExistence(timeout: 3) { break }
+        }
+        XCTAssertTrue(running.waitForExistence(timeout: 10))
+        running.click()
+        XCTAssertTrue(app.staticTexts["uitest-web"].waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testOverviewComposeAndPullActions() throws {
+        let app = launchedApp()
+        app.buttons["sidebar-dashboard"].click()
+        let compose = app.buttons["overview-compose"]
+        XCTAssertTrue(compose.waitForExistence(timeout: 10))
+        compose.click()
+        let panel = app.dialogs["open-panel"]
+        XCTAssertTrue(panel.waitForExistence(timeout: 10))
+        panel.buttons["Cancel"].click()
+        app.buttons["overview-pull"].click()
+        XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 10))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+    }
+
+    @MainActor
     func testEditUsesTheSameBasicFirstForm() throws {
         let app = launchedApp()
         openContainersTab(app)

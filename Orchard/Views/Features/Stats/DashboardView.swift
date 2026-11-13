@@ -3,6 +3,10 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject var statsService: StatsService
     @EnvironmentObject var systemService: SystemService
+    @EnvironmentObject var containerListService: ContainerListService
+    @EnvironmentObject var imageService: ImageService
+    @EnvironmentObject var composeService: ComposeService
+    @EnvironmentObject var volumeService: VolumeService
     @Binding var selectedTab: TabSelection
     @Binding var selectedContainer: String?
 
@@ -10,6 +14,7 @@ struct DashboardView: View {
     /// is heavier than a per-container stats read, so this stays well below the 2s sampling
     /// cadence — enough to catch a pull/prune/remove without hammering the daemon.
     @State private var diskRefreshTimer: Timer?
+    @State private var showingExampleRun = false
     private static let diskRefreshInterval: TimeInterval = 20
 
     /// Recent CPU% per container id for the table's row sparklines (last 60 samples).
@@ -64,7 +69,7 @@ struct DashboardView: View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Dashboard")
+                Text("Overview")
                     .font(.title2)
                     .fontWeight(.semibold)
 
@@ -102,6 +107,8 @@ struct DashboardView: View {
             // Stats table
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    overviewSummary
+                    overviewActivity
                     // System Disk Usage Section
                     SystemDiskUsageView(selectedTab: $selectedTab)
 
@@ -164,6 +171,74 @@ struct DashboardView: View {
             statsService.endSampling()
             stopDiskRefresh()
         }
+        .sheet(isPresented: $showingExampleRun) {
+            RunContainerView(imageName: "nginx:alpine")
+        }
+    }
+
+    private var overviewSummary: some View {
+        let counts = OverviewCounts(
+            containers: containerListService.containers,
+            imageCount: imageService.images.count,
+            projectCount: ComposeProject.group(containers: containerListService.containers, records: composeService.records).count,
+            volumeCount: volumeService.volumes.count
+        )
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Label("\(systemService.systemStatus.text.capitalized) \(systemService.parsedContainerVersion ?? "")", systemImage: "circle.fill")
+                    .foregroundStyle(systemService.systemStatus.color)
+                    .accessibilityIdentifier("overview-runtime-status")
+                Spacer()
+                Button("Start") { Task { await systemService.startSystem() } }
+                    .disabled(systemService.systemStatus == .running)
+                Button("Stop") { Task { await systemService.stopSystem() } }
+                    .disabled(systemService.systemStatus != .running)
+            }
+            HStack(spacing: 18) {
+                countButton("Running", count: counts.running, tab: .containers, id: "overview-running")
+                countButton("Stopped", count: counts.stopped, tab: .containers, id: "overview-stopped")
+                countButton("Images", count: counts.images, tab: .images, id: "overview-images")
+                countButton("Compose Projects", count: counts.projects, tab: .compose, id: "overview-projects")
+                countButton("Volumes", count: counts.volumes, tab: .volumes, id: "overview-volumes")
+            }
+            HStack {
+                Button("Run Container") { postAction(.showRunContainerSheet) }
+                    .accessibilityIdentifier("overview-run")
+                Button("Open Compose Project") { ComposeAddFlow.present(service: composeService) }
+                    .accessibilityIdentifier("overview-compose")
+                Button("Pull Image") { postAction(.showImageSearch) }
+                    .accessibilityIdentifier("overview-pull")
+            }
+            if containerListService.containers.isEmpty {
+                Button("Run your first container (nginx:alpine)") { showingExampleRun = true }
+                    .accessibilityIdentifier("overview-empty")
+            }
+        }
+    }
+
+    private func countButton(_ title: String, count: Int, tab: TabSelection, id: String) -> some View {
+        Button("\(title): \(count)") { selectedTab = tab }
+            .buttonStyle(.link)
+            .accessibilityIdentifier(id)
+    }
+
+    private func postAction(_ action: PaletteAction) {
+        NotificationCenter.default.post(name: NSNotification.Name("OverviewAction"), object: action)
+    }
+
+    private var overviewActivity: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Recent activity").font(.headline)
+            Text("Since ContainerDesk opened").font(.caption).foregroundStyle(.secondary)
+            if containerListService.recentActivity.isEmpty {
+                Text("No state changes observed yet.").foregroundStyle(.secondary)
+            } else {
+                ForEach(containerListService.recentActivity) { activity in
+                    Text("\(activity.containerID): \(activity.from) → \(activity.to) · \(activity.observedAt.formatted(date: .omitted, time: .shortened))")
+                }
+            }
+        }
+        .accessibilityIdentifier("overview-activity")
     }
 
     /// Re-fetch disk usage on a slow cadence while visible so the tiles don't go stale during

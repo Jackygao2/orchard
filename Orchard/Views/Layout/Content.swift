@@ -525,6 +525,10 @@ struct ContentView: View {
             guard let rawValue = notification.object as? String, let tab = TabSelection(rawValue: rawValue) else { return }
             selectedTab = tab
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OverviewAction"))) { notification in
+            guard hostWindow?.isKeyWindow == true, let action = notification.object as? PaletteAction else { return }
+            handlePaletteAction(action)
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("OpenComposeProject"))) { _ in
             guard hostWindow?.isKeyWindow == true else { return }
             selectedTab = .compose

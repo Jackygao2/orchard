@@ -119,6 +119,18 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testDeleteConfirmationDismissesWithEscape() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        app.staticTexts["uitest-db"].click()
+        app.typeKey(XCUIKeyboardKey.delete, modifierFlags: .command)
+        XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 10))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+        XCTAssertFalse(app.sheets.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["uitest-db"].exists)
+    }
+
+    @MainActor
     func testToolbarRefreshAndCommandPalette() throws {
         let app = launchedApp()
         let status = app.descendants(matching: .any)["toolbar-runtime-status"]

@@ -317,15 +317,20 @@ struct MetricRow<Detail: View, ChartContent: View, Footer: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title.uppercased()).font(.headline).foregroundColor(.primary)
-            HStack(alignment: .top, spacing: 16) {
-                detail
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .containerRelativeFrame(.horizontal, count: 3, span: 1, spacing: 0)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 16) {
+                    detail.frame(minWidth: 150, maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 12) {
+                        chart
+                        footer
+                    }
+                    .frame(minWidth: 200, maxWidth: .infinity)
+                }
                 VStack(alignment: .leading, spacing: 12) {
+                    detail
                     chart
                     footer
                 }
-                .frame(maxWidth: .infinity)
             }
         }
         .well()

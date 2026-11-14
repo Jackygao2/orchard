@@ -225,6 +225,19 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testContainerStatsRemainReadableInNarrowWindow() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        let window = app.windows.firstMatch
+        let corner = window.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 1))
+        let narrower = window.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 1))
+        corner.press(forDuration: 0.2, thenDragTo: narrower)
+        let allocated = app.staticTexts["2 cores allocated"]
+        XCTAssertTrue(allocated.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(allocated.frame.width, 75, "The CPU allocation should not collapse into a narrow column")
+    }
+
+    @MainActor
     func testImageReferenceLabelContrast() throws {
         let app = launchedApp()
         app.typeKey("4", modifierFlags: .command)

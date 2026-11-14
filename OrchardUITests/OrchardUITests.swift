@@ -288,6 +288,20 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testAdvancedListsHaveAccessibleNames() throws {
+        let app = launchedApp()
+        let disclosure = app.buttons["sidebar-advanced"]
+        XCTAssertTrue(disclosure.waitForExistence(timeout: 20))
+        disclosure.click()
+        for (tab, listName) in [("machines", "Machines"), ("models", "Models")] {
+            let row = app.buttons["sidebar-\(tab)"]
+            XCTAssertTrue(row.waitForExistence(timeout: 10))
+            row.click()
+            XCTAssertTrue(app.outlines[listName].waitForExistence(timeout: 10), listName)
+        }
+    }
+
+    @MainActor
     func testRegistryAndSystemLogSettings() throws {
         let app = launchedApp()
         let settings = app.buttons["sidebar-settings"]

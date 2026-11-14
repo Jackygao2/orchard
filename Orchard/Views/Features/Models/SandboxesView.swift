@@ -61,6 +61,7 @@ struct SandboxesListView: View {
                     }
                 }
                 .listStyle(PlainListStyle())
+                .accessibilityLabel("Sandboxes")
                 .focused($listFocusedTab, equals: .sandboxes)
             }
         }

@@ -119,6 +119,7 @@ struct ModelsListView: View {
                     }
                 }
                 .listStyle(PlainListStyle())
+                .accessibilityLabel("Models")
                 .focused($listFocusedTab, equals: .models)
             }
         }

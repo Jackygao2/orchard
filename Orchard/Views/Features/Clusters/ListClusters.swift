@@ -163,6 +163,7 @@ struct ClustersListView: View {
             }
         }
         .listStyle(PlainListStyle())
+        .accessibilityLabel("Clusters")
         .animation(.easeInOut(duration: 0.3), value: containerListService.containers)
         .focused($listFocusedTab, equals: .clusters)
         .onKeyPress(keys: [.leftArrow, .rightArrow]) { press in handleArrow(press.key) }

@@ -10,6 +10,8 @@ struct LogsView: View {
     @State private var refreshTimer: Timer?
     @State private var filterText: String = ""
     @State private var isPaused: Bool = false
+    @State private var selectedLogText = ""
+    @FocusState private var filterFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -25,12 +27,14 @@ struct LogsView: View {
 
                 Spacer()
 
+                LogActions(lines: displayLines, selectedText: selectedLogText)
                 Button(action: { isPaused.toggle() }) {
                     SwiftUI.Image(systemName: isPaused ? "play.fill" : "pause.fill")
                         .foregroundColor(isPaused ? .orange : .secondary)
                 }
                 .buttonStyle(.borderless)
                 .help(isPaused ? "Resume log refresh" : "Pause log refresh")
+                .keyboardShortcut(.space, modifiers: [])
 
                 Button(action: { openWindow(id: "logs", value: LogTarget.container(containerId)) }) {
                     Label("Open Log Viewer", systemImage: "rectangle.on.rectangle")
@@ -45,6 +49,8 @@ struct LogsView: View {
                 SwiftUI.Image(systemName: "magnifyingglass")
                     .foregroundColor(.secondary)
                 TextField("Filter logs...", text: $filterText)
+                    .focused($filterFocused)
+                    .accessibilityIdentifier("logs-filter")
                     .textFieldStyle(RoundedBorderTextFieldStyle())
 
                 if !filterText.isEmpty {
@@ -79,12 +85,14 @@ struct LogsView: View {
                         .foregroundColor(Color(white: 0.5))
                         .padding()
                 } else {
-                    LogConsoleView(lines: displayLines, filterText: filterText)
+                    LogConsoleView(lines: displayLines, filterText: filterText, onSelectionChange: { selectedLogText = $0 })
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black.opacity(0.85))
         }
+        .background(Button("Focus log filter") { filterFocused = true }.keyboardShortcut("f", modifiers: .command).hidden())
+        .onChange(of: displayLines) { _, _ in selectedLogText = "" }
         .onAppear {
             startLogRefresh()
         }

@@ -96,6 +96,8 @@ struct LogPaneView: View {
     @State private var refreshTimer: Timer?
     @State private var isLoading: Bool = false
     @State private var isPaused: Bool = false
+    @State private var selectedLogText = ""
+    @FocusState private var filterFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -150,6 +152,8 @@ struct LogPaneView: View {
                     .foregroundColor(.secondary)
                     .font(.system(size: 11))
                 TextField("Filter logs...", text: $filterText)
+                    .focused($filterFocused)
+                    .accessibilityIdentifier("logs-filter")
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
 
@@ -166,6 +170,7 @@ struct LogPaneView: View {
                     .buttonStyle(.plain)
                 }
 
+                LogActions(lines: displayLines, selectedText: selectedLogText)
                 Button(action: { isPaused.toggle() }) {
                     SwiftUI.Image(systemName: isPaused ? "play.fill" : "pause.fill")
                         .foregroundColor(isPaused ? .orange : .secondary)
@@ -173,6 +178,7 @@ struct LogPaneView: View {
                 }
                 .buttonStyle(.plain)
                 .help(isPaused ? "Resume log refresh" : "Pause log refresh")
+                .keyboardShortcut(.space, modifiers: [])
 
                 if canClose {
                     Button(action: onClose) {
@@ -204,12 +210,14 @@ struct LogPaneView: View {
                         .foregroundColor(Color(white: 0.5))
                         .padding()
                 } else {
-                    LogConsoleView(lines: displayLines, filterText: filterText)
+                    LogConsoleView(lines: displayLines, filterText: filterText, onSelectionChange: { selectedLogText = $0 })
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black.opacity(0.85))
         }
+        .background(Button("Focus log filter") { filterFocused = true }.keyboardShortcut("f", modifiers: .command).hidden())
+        .onChange(of: displayLines) { _, _ in selectedLogText = "" }
         .onAppear {
             // The target this window was opened for, else the first running container.
             if let initial = initialTarget {

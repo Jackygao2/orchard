@@ -97,7 +97,13 @@ struct UITestBackend: ContainerBackend {
         user: String?,
         onOutput: @escaping @Sendable (String) -> Void
     ) async throws -> Int32 { 0 }
-    func containerLogs(id: String) async throws -> [FileHandle] { [] }
+    func containerLogs(id: String) async throws -> [FileHandle] {
+        guard ProcessInfo.processInfo.arguments.contains("--uitest-logs") else { return [] }
+        let pipe = Pipe()
+        pipe.fileHandleForWriting.write(Data("fixture visible log\nfixture second line".utf8))
+        try? pipe.fileHandleForWriting.close()
+        return [pipe.fileHandleForReading]
+    }
     func daemonDNSDomain() async throws -> String? { nil }
     func containerDNSDefaults() async throws -> ContainerDNSDefaults { ContainerDNSDefaults() }
     func exportContainer(id: String, to destination: URL) async throws {}

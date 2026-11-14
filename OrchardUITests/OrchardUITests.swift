@@ -1,4 +1,5 @@
 import XCTest
+import AppKit
 
 /// Smoke suite: launches the app against the in-memory stub backend (via the
 /// `--uitest-mock-backend` launch argument) and drives a few flows a user would meet.
@@ -535,6 +536,32 @@ final class OrchardUITests: XCTestCase {
         cleanup.click()
         XCTAssertTrue(app.staticTexts["Free Up Space"].waitForExistence(timeout: 10))
         app.buttons["Cancel"].click()
+    }
+
+    @MainActor
+    func testCopyFilteredLogs() throws {
+        let pasteboard = NSPasteboard.general
+        let saved = (pasteboard.pasteboardItems ?? []).map { item -> NSPasteboardItem in
+            let copy = NSPasteboardItem()
+            for type in item.types { if let data = item.data(forType: type) { copy.setData(data, forType: type) } }
+            return copy
+        }
+        defer { pasteboard.clearContents(); if !saved.isEmpty { pasteboard.writeObjects(saved) } }
+        let app = launchedApp(extraArguments: ["--uitest-logs"])
+        openContainersTab(app)
+        app.staticTexts["uitest-web"].firstMatch.click()
+        app.typeKey("l", modifierFlags: .command)
+        let filter = app.textFields["logs-filter"].firstMatch
+        XCTAssertTrue(filter.waitForExistence(timeout: 20))
+        app.typeKey("f", modifierFlags: .command)
+        app.typeText("second")
+        XCTAssertEqual(filter.value as? String, "second")
+        let copy = app.buttons["logs-copy"].firstMatch
+        XCTAssertTrue(copy.waitForExistence(timeout: 20))
+        for _ in 0..<10 where !copy.isEnabled { sleep(1) }
+        XCTAssertTrue(copy.isEnabled)
+        copy.click()
+        XCTAssertEqual(pasteboard.string(forType: .string), "fixture second line")
     }
 
 }

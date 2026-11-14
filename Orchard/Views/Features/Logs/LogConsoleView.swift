@@ -11,9 +11,10 @@ import SwiftUI
 struct LogConsoleView: NSViewRepresentable {
     let lines: [String]
     let filterText: String
+    var onSelectionChange: (String) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator()
+        Coordinator(onSelectionChange: onSelectionChange)
     }
 
     func makeNSView(context: Context) -> NSScrollView {
@@ -22,6 +23,7 @@ struct LogConsoleView: NSViewRepresentable {
         scrollView.hasHorizontalScroller = false
 
         let textView = scrollView.documentView as! NSTextView
+        textView.delegate = context.coordinator
         textView.isEditable = false
         textView.isRichText = false
         textView.drawsBackground = false
@@ -37,7 +39,15 @@ struct LogConsoleView: NSViewRepresentable {
     }
 
     @MainActor
-    final class Coordinator {
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        var onSelectionChange: (String) -> Void
+        init(onSelectionChange: @escaping (String) -> Void) { self.onSelectionChange = onSelectionChange }
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard let view = notification.object as? NSTextView else { return }
+            let range = view.selectedRange()
+            guard range.length > 0, NSMaxRange(range) <= (view.string as NSString).length else { onSelectionChange(""); return }
+            onSelectionChange((view.string as NSString).substring(with: range))
+        }
         private var renderedLines: [String] = []
         private var renderedFilter = ""
         private var hasRendered = false

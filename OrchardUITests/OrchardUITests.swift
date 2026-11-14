@@ -646,4 +646,18 @@ final class OrchardUITests: XCTestCase {
         app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
     }
 
+    @MainActor
+    func testAcknowledgementsAreReadable() throws {
+        let app = launchedApp()
+        let settings = app.buttons["sidebar-settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 20))
+        settings.click()
+        let tab = app.buttons["Acknowledgements"]
+        XCTAssertTrue(tab.waitForExistence(timeout: 10))
+        tab.click()
+        let notices = app.textViews["acknowledgements-notices"]
+        XCTAssertTrue(notices.waitForExistence(timeout: 20))
+        XCTAssertTrue((notices.value as? String ?? "").contains("Andrew Waters"))
+    }
+
 }

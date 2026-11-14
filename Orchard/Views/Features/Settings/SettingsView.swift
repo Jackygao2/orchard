@@ -87,20 +87,46 @@ struct RuntimeSettingsView: View {
 }
 
 struct AcknowledgementsSettingsView: View {
+    @State private var notices: String?
+    @State private var loadFailed = false
+
     var body: some View {
-        Form {
-            Section("ContainerDesk") {
-                Text(AppBrand.orchardCredit)
-                Text("ContainerDesk contributors")
-                Link("Orchard project", destination: URL(string: "https://github.com/andrew-waters/orchard")!)
-            }
-            Section("Runtime and Compose") {
-                Text("ContainerDesk uses Apple's container Runtime and the andrew-waters/compose package.")
-                Link("Apple container", destination: URL(string: "https://github.com/apple/container")!)
-                Link("Compose package", destination: URL(string: "https://github.com/andrew-waters/compose")!)
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Acknowledgements and licences").font(.headline)
+            Text(AppBrand.orchardCredit).foregroundStyle(.secondary)
+            if let notices {
+                AcknowledgementsTextView(text: notices)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if loadFailed {
+                Text("The bundled acknowledgements could not be read.").foregroundStyle(.red)
+            } else {
+                ProgressView("Loading acknowledgements…")
             }
         }
-        .formStyle(.grouped)
+        .padding()
+        .task {
+            guard let url = Bundle.main.url(forResource: "THIRD_PARTY_NOTICES", withExtension: "txt") else { loadFailed = true; return }
+            do { notices = try await Task.detached { try String(contentsOf: url, encoding: .utf8) }.value }
+            catch { loadFailed = true }
+        }
+    }
+}
+
+/// AppKit's selectable text view handles long licence files without building thousands of SwiftUI views.
+private struct AcknowledgementsTextView: NSViewRepresentable {
+    let text: String
+    func makeNSView(context: Context) -> NSScrollView {
+        let scroll = NSTextView.scrollableTextView()
+        let view = scroll.documentView as! NSTextView
+        view.isEditable = false
+        view.isSelectable = true
+        view.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        view.setAccessibilityIdentifier("acknowledgements-notices")
+        return scroll
+    }
+    func updateNSView(_ scroll: NSScrollView, context: Context) {
+        guard let view = scroll.documentView as? NSTextView, view.string != text else { return }
+        view.string = text
     }
 }
 

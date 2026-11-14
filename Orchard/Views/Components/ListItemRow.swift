@@ -118,9 +118,9 @@ struct ListItemRow: View {
                     HStack {
                         if let secondaryLeft = secondaryLeftText {
                             Text(secondaryLeft)
-                                .font(.system(size: 10, weight: .regular))
+                                .font(.system(size: 12, weight: .regular))
                                 .fontDesign(.monospaced)
-                                .foregroundColor(isSelected ? .primary : .secondary)
+                                .foregroundColor(.primary)
                                 .lineLimit(1)
                         }
 
@@ -128,9 +128,9 @@ struct ListItemRow: View {
 
                         if let secondaryRight = secondaryRightText {
                             Text(secondaryRight)
-                                .font(.system(size: 10, weight: .regular))
+                                .font(.system(size: 12, weight: .regular))
                                 .fontDesign(.monospaced)
-                                .foregroundColor(isSelected ? .primary : .secondary)
+                                .foregroundColor(.primary)
                                 .lineLimit(1)
                         }
                     }

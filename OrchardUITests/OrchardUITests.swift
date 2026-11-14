@@ -230,6 +230,22 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testImageListSecondaryTextContrast() throws {
+        let app = launchedApp()
+        app.typeKey("4", modifierFlags: .command)
+        XCTAssertTrue(app.staticTexts["latest"].waitForExistence(timeout: 10))
+        var issues: [String] = []
+        try app.performAccessibilityAudit(for: .contrast) { issue in
+            if (issue.element?.value as? String) == "latest" || issue.detailedDescription.contains("for latest") {
+                issues.append(issue.compactDescription)
+            }
+            // Other contrast findings remain recorded in the ticket.
+            return true
+        }
+        XCTAssertTrue(issues.isEmpty, issues.joined(separator: ", "))
+    }
+
+    @MainActor
     func testToolbarRefreshAndCommandPalette() throws {
         let app = launchedApp()
         let status = app.descendants(matching: .any)["toolbar-runtime-status"]

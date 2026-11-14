@@ -92,11 +92,13 @@ struct NetworksListView: View {
             }
         }
         .listStyle(PlainListStyle())
+        .accessibilityLabel("Networks")
         .background(
             Button(action: selectAllNetworks) {
                 EmptyView()
             }
             .keyboardShortcut("a", modifiers: .command)
+            .accessibilityHidden(true)
         )
         .animation(.easeInOut(duration: 0.3), value: networkService.networks)
         .focused($listFocusedTab, equals: .networks)

@@ -26,10 +26,8 @@ final class OrchardUITests: XCTestCase {
     /// The app now opens on the Dashboard; the container list lives under the Containers tab.
     /// Every flow below starts here so it doesn't depend on the launch default.
     ///
-    /// The sidebar row is a tap-gesture view (not a `Button`), and a synthetic `click()` on it
-    /// intermittently fails to register on a cold/slow CI launch — the tab never switches and
-    /// the list column never appears. So click until the seeded row actually renders, which is
-    /// the real signal that navigation took; re-selecting the Containers tab is idempotent.
+    /// Retry until the seeded row renders: selection can race a cold launch, and re-selecting
+    /// the Containers tab is idempotent.
     private func openContainersTab(_ app: XCUIApplication) {
         let tab = app.buttons["sidebar-containers"]
         XCTAssertTrue(tab.waitForExistence(timeout: 20), "Containers sidebar tab should exist")
@@ -101,6 +99,23 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testPrimarySearchFieldsHaveAccessibleNames() throws {
+        let app = launchedApp()
+        for (key, identifier, name) in [
+            ("2", "search-containers", "Search containers"),
+            ("3", "search-compose", "Search compose projects"),
+            ("4", "search-images", "Search images"),
+            ("5", "search-volumes", "Search volumes"),
+            ("6", "search-networks", "Search networks")
+        ] {
+            app.typeKey(key, modifierFlags: .command)
+            let field = app.textFields[identifier]
+            XCTAssertTrue(field.waitForExistence(timeout: 10), identifier)
+            XCTAssertEqual(field.label, name)
+        }
+    }
+
+    @MainActor
     func testSearchShortcutFocusesToolbar() throws {
         let app = launchedApp()
         openContainersTab(app)
@@ -161,6 +176,23 @@ final class OrchardUITests: XCTestCase {
         let stopped = app.descendants(matching: .outlineRow)
             .containing(.staticText, identifier: "uitest-db").firstMatch
         XCTAssertTrue(stopped.isSelected)
+    }
+
+    @MainActor
+    func testResourceSelectAllShortcutsRemainAvailable() throws {
+        let app = launchedApp()
+        for (key, identifier, rowName) in [
+            ("4", "search-images", "uitest-nginx"),
+            ("6", "search-networks", "uitest-net")
+        ] {
+            app.typeKey(key, modifierFlags: .command)
+            XCTAssertTrue(app.descendants(matching: .any)[identifier].waitForExistence(timeout: 10))
+            let row = app.descendants(matching: .outlineRow)
+                .containing(.staticText, identifier: rowName).firstMatch
+            XCTAssertTrue(row.waitForExistence(timeout: 10), rowName)
+            app.typeKey("a", modifierFlags: .command)
+            XCTAssertTrue(row.isSelected, rowName)
+        }
     }
 
     @MainActor

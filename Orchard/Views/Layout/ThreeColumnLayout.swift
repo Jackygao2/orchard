@@ -164,6 +164,7 @@ struct ThreeColumnLayout: View {
                                     TextField("Search \(selectedTab.title.lowercased())", text: $searchText)
                                         .textFieldStyle(.plain)
                                         .font(.system(size: 12))
+                                        .accessibilityLabel("Search \(selectedTab.title.lowercased())")
                                         .accessibilityIdentifier("search-\(selectedTab.rawValue)")
                                 }
                                 .padding(.horizontal, 8)
@@ -648,37 +649,35 @@ struct TabColumnView: View {
    }
 
     private func sidebarRow(for tab: TabSelection) -> some View {
-        HStack(spacing: 10) {
-            SwiftUI.Image(systemName: tab.icon)
-                .font(.system(size: 14, weight: .regular))
-                .frame(width: 20)
-                .foregroundColor(selectedTab == tab ? .accentColor : .primary)
+        Button { selectTab(tab) } label: {
+            HStack(spacing: 10) {
+                SwiftUI.Image(systemName: tab.icon)
+                    .font(.system(size: 14, weight: .regular))
+                    .frame(width: 20)
+                    .foregroundColor(selectedTab == tab ? .accentColor : .primary)
 
-            Text(tab.title)
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(selectedTab == tab ? .accentColor : .primary)
+                Text(tab.title)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(selectedTab == tab ? .accentColor : .primary)
 
-            Spacer()
+                Spacer()
 
-            if getTabCount(for: tab) > 0 {
-                Text("\(getTabCount(for: tab))")
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundColor(selectedTab == tab ? .white.opacity(0.8) : .secondary)
+                if getTabCount(for: tab) > 0 {
+                    Text("\(getTabCount(for: tab))")
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundColor(selectedTab == tab ? .white.opacity(0.8) : .secondary)
+                }
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                (selectedTab == tab || (tab == .images && selectedTab == .builds) || (tab == .volumes && selectedTab == .mounts) || (tab == .networks && selectedTab == .dns)) ? Color.secondary.opacity(0.1) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 8)
+            )
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(
-            (selectedTab == tab || (tab == .images && selectedTab == .builds) || (tab == .volumes && selectedTab == .mounts) || (tab == .networks && selectedTab == .dns)) ? Color.secondary.opacity(0.1) : Color.clear,
-            in: RoundedRectangle(cornerRadius: 8)
-        )
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selectTab(tab)
-        }
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { selectTab(tab) }
         .accessibilityIdentifier("sidebar-\(tab.rawValue)")
     }
 

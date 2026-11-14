@@ -50,6 +50,7 @@ struct ContainersListView: View {
                 }
             }
             .listStyle(PlainListStyle())
+            .accessibilityLabel("Containers")
             .background(
                 Button(action: selectAllContainers) {
                     EmptyView()

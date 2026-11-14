@@ -55,6 +55,7 @@ struct ContainersListView: View {
                     EmptyView()
                 }
                 .keyboardShortcut("a", modifiers: .command)
+                .accessibilityHidden(true)
             )
             .animation(.easeInOut(duration: 0.3), value: containerListService.containers)
             .ownedSandboxConfirmation($pendingOwnedConfirmation)
@@ -97,6 +98,7 @@ struct ContainersListView: View {
             ListItemRow(
                 icon: "cube",
                 iconColor: container.status.lowercased() == "running" ? .green : .secondary,
+                iconAccessibilityLabel: "Container status: \(container.status)",
                 primaryText: container.configuration.id,
                 secondaryLeftText: networkAddress(for: container) ?? "-",
                 secondaryRightText: hostname(for: container),

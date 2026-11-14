@@ -678,6 +678,7 @@ struct TabColumnView: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
+        .accessibilityAction { selectTab(tab) }
         .accessibilityIdentifier("sidebar-\(tab.rawValue)")
     }
 

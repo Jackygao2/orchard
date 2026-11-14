@@ -84,6 +84,23 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testPrimarySidebarHasAccessibilityActions() throws {
+        let app = launchedApp()
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["overview-content"].waitForExistence(timeout: 10))
+        var sidebarIssues: [String] = []
+        try app.performAccessibilityAudit(for: .action) { issue in
+            let identifier = issue.element?.identifier ?? ""
+            if identifier.hasPrefix("sidebar-") || identifier.isEmpty {
+                sidebarIssues.append("\(identifier): \(issue.compactDescription)")
+            }
+            // Other controls are covered by the wider audit, not this focused regression.
+            return true
+        }
+        XCTAssertTrue(sidebarIssues.isEmpty, sidebarIssues.joined(separator: ", "))
+    }
+
+    @MainActor
     func testSearchShortcutFocusesToolbar() throws {
         let app = launchedApp()
         openContainersTab(app)
@@ -128,6 +145,22 @@ final class OrchardUITests: XCTestCase {
         app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
         XCTAssertFalse(app.sheets.firstMatch.waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["uitest-db"].exists)
+    }
+
+    @MainActor
+    func testContainerRowsExposeStatusAndSelectAllShortcut() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        let running = app.descendants(matching: .outlineRow)
+            .containing(.staticText, identifier: "uitest-web").firstMatch
+        XCTAssertTrue(running.waitForExistence(timeout: 10))
+        XCTAssertTrue(running.images["Container status: running"].exists)
+        XCTAssertFalse(running.images["Depth Effect"].exists)
+        app.typeKey("a", modifierFlags: .command)
+        XCTAssertTrue(running.isSelected)
+        let stopped = app.descendants(matching: .outlineRow)
+            .containing(.staticText, identifier: "uitest-db").firstMatch
+        XCTAssertTrue(stopped.isSelected)
     }
 
     @MainActor

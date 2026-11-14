@@ -12,6 +12,7 @@ struct ListItemRow: View {
 
     let icon: String
     let iconColor: Color
+    let iconAccessibilityLabel: String?
     let primaryText: String
     let secondaryLeftText: String?
     let secondaryRightText: String?
@@ -30,6 +31,7 @@ struct ListItemRow: View {
     init(
         icon: String,
         iconColor: Color,
+        iconAccessibilityLabel: String? = nil,
         primaryText: String,
         secondaryLeftText: String? = nil,
         secondaryRightText: String? = nil,
@@ -41,6 +43,7 @@ struct ListItemRow: View {
     ) {
         self.icon = icon
         self.iconColor = iconColor
+        self.iconAccessibilityLabel = iconAccessibilityLabel
         self.primaryText = primaryText
         self.secondaryLeftText = secondaryLeftText
         self.secondaryRightText = secondaryRightText
@@ -54,7 +57,7 @@ struct ListItemRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // Icon
-            SwiftUI.Image(systemName: icon)
+            iconImage
                 .font(.system(size: 16, weight: .regular))
                 .foregroundColor(iconColor)
                 .frame(width: 20, height: 20)
@@ -139,6 +142,15 @@ struct ListItemRow: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 6)
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var iconImage: some View {
+        if let iconAccessibilityLabel {
+            SwiftUI.Image(systemName: icon).accessibilityLabel(Text(iconAccessibilityLabel))
+        } else {
+            SwiftUI.Image(systemName: icon)
+        }
     }
 }
 

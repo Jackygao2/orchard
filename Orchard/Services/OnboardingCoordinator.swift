@@ -45,6 +45,11 @@ final class OnboardingCoordinator: ObservableObject {
         isPresented = forceShow || !defaults.bool(forKey: completedKey)
     }
 
+    nonisolated static func extractVersion(_ output: String) -> String? {
+        guard let range = output.range(of: #"[0-9]+\.[0-9]+(?:\.[0-9]+)?"#, options: .regularExpression) else { return nil }
+        return String(output[range])
+    }
+
     static func policy(version: String?) -> VersionPolicy {
         guard let version, let parsed = ComposePluginVersion(version),
               let major = parsed.components.first else { return .unknown }

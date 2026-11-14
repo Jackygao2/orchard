@@ -141,3 +141,14 @@ func onboardingCompletionPersistence() async {
     let third = OnboardingCoordinator(defaults: defaults, operations: operations)
     #expect(third.isPresented)
 }
+
+@MainActor
+@Test("Settings reads an installed Runtime CLI version without starting it")
+func settingsReadsRuntimeVersion() async {
+    let runner = MockCommandRunner()
+    runner.runHandler = { _, _ in ProcessResult(exitCode: 0, stdout: "container version 1.7.1", stderr: nil) }
+    let services = makeService(runner: runner)
+    #expect(await services.systemService.installedCLIVersion() == "1.7.1")
+    #expect(runner.calls == [["--version"]])
+    #expect(OnboardingCoordinator.extractVersion("no version") == nil)
+}

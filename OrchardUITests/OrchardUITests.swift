@@ -619,4 +619,21 @@ final class OrchardUITests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testSettingsTabsAndSetupReentry() throws {
+        let app = launchedApp()
+        let settings = app.buttons["sidebar-settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 20))
+        settings.click()
+        for tab in ["General", "System", "Registries", "Acknowledgements", "Runtime"] {
+            let button = app.buttons[tab]
+            XCTAssertTrue(button.waitForExistence(timeout: 10), "Missing Settings tab \(tab)")
+            button.click()
+        }
+        let rerun = app.buttons["settings-rerun-setup"]
+        XCTAssertTrue(rerun.waitForExistence(timeout: 10))
+        rerun.click()
+        XCTAssertTrue(app.buttons["onboarding-begin"].waitForExistence(timeout: 10))
+    }
+
 }

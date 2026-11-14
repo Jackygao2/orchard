@@ -145,6 +145,13 @@ final class SystemService: ObservableObject {
         await checkSystemStatus()
     }
 
+    /// Read the installed CLI version without starting the Runtime.
+    func installedCLIVersion() async -> String? {
+        guard isContainerInstalled() else { return nil }
+        guard let result = try? await runner.run(program: settings.safeContainerBinaryPath(), arguments: ["--version"]), !result.failed else { return nil }
+        return OnboardingCoordinator.extractVersion((result.stdout ?? "") + " " + (result.stderr ?? ""))
+    }
+
     func checkContainerVersion() async {
         await checkSystemStatus()
     }

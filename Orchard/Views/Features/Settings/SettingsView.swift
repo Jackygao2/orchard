@@ -7,12 +7,18 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var systemService: SystemService
     @EnvironmentObject var dnsService: DNSService
+    @EnvironmentObject var composePluginService: ComposePluginService
 
     var body: some View {
         TabView {
             GeneralSettingsView()
                 .tabItem {
                     Label("General", systemImage: "gearshape")
+                }
+
+            RuntimeSettingsView()
+                .tabItem {
+                    Label("Runtime", systemImage: "shippingbox")
                 }
 
             SystemSettingsView()
@@ -25,25 +31,76 @@ struct SettingsView: View {
                     Label("Registries", systemImage: "server.rack")
                 }
 
-            VStack {
-                Text("System Logs").font(.title)
-                Text("Coming Soon").foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .tabItem {
-                Label("System Logs", systemImage: "doc.text.below.ecg")
-            }
+            AcknowledgementsSettingsView()
+                .tabItem {
+                    Label("Acknowledgements", systemImage: "info.circle")
+                }
         }
         .frame(width: 540, height: 460)
         // Loaded once here rather than per-tab: macOS TabView builds both tabs when the
         // window opens, so a per-tab onAppear would fetch the property list twice.
         .onAppear {
             Task {
-                await systemService.loadSystemProperties(showLoading: true)
-                systemService.loadBackupExclusionState()
-                await dnsService.load(showLoading: true)
+                await systemService.checkSystemStatus()
+                await composePluginService.refresh()
+                if systemService.systemStatus == .running || systemService.systemStatus == .newerVersion {
+                    await systemService.loadSystemProperties(showLoading: true)
+                    systemService.loadBackupExclusionState()
+                    await dnsService.load(showLoading: true)
+                }
             }
         }
+    }
+}
+
+struct RuntimeSettingsView: View {
+    @EnvironmentObject var systemService: SystemService
+    @EnvironmentObject var composePluginService: ComposePluginService
+    @EnvironmentObject var onboarding: OnboardingCoordinator
+    @Environment(\.openWindow) private var openWindow
+    @State private var cliVersion: String?
+
+    var body: some View {
+        Form {
+            Section("Apple container") {
+                LabeledContent("Runtime status", value: systemService.systemStatus.text.capitalized)
+                LabeledContent("Running version", value: systemService.containerVersion ?? "Unavailable")
+                LabeledContent("Installed CLI version", value: cliVersion ?? "Unavailable")
+                LabeledContent("Linked version", value: supportedContainerVersion)
+            }
+            Section("Compose plugin") {
+                LabeledContent("CLI plugin", value: composePluginService.isInstalled ? (composePluginService.installedVersion ?? "Installed (version unknown)") : "Not installed")
+                LabeledContent("Linked Compose version", value: ComposePluginService.linkedVersion)
+                Text("The plugin is optional for in-app Compose projects.").foregroundStyle(.secondary)
+            }
+            Section {
+                Button("Run Setup Again") {
+                    onboarding.runSetupAgain()
+                    if !MainWindows.bringToFront() { openWindow(id: "main") }
+                }
+                .accessibilityIdentifier("settings-rerun-setup")
+            }
+        }
+        .formStyle(.grouped)
+        .task { cliVersion = await systemService.installedCLIVersion() }
+    }
+}
+
+struct AcknowledgementsSettingsView: View {
+    var body: some View {
+        Form {
+            Section("ContainerDesk") {
+                Text(AppBrand.orchardCredit)
+                Text("ContainerDesk contributors")
+                Link("Orchard project", destination: URL(string: "https://github.com/andrew-waters/orchard")!)
+            }
+            Section("Runtime and Compose") {
+                Text("ContainerDesk uses Apple's container Runtime and the andrew-waters/compose package.")
+                Link("Apple container", destination: URL(string: "https://github.com/apple/container")!)
+                Link("Compose package", destination: URL(string: "https://github.com/andrew-waters/compose")!)
+            }
+        }
+        .formStyle(.grouped)
     }
 }
 

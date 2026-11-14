@@ -190,7 +190,7 @@ final class AppServices: ObservableObject {
                 if version == nil {
                     let result = try await runner.run(program: settings.safeContainerBinaryPath(), arguments: ["--version"])
                     let output = (result.stdout ?? "") + " " + (result.stderr ?? "")
-                    if let range = output.range(of: #"[0-9]+\.[0-9]+(?:\.[0-9]+)?"#, options: .regularExpression) { version = String(output[range]) }
+                    version = OnboardingCoordinator.extractVersion(output)
                 }
                 return .init(installed: true, running: running, version: version)
             },
@@ -235,7 +235,7 @@ final class AppServices: ObservableObject {
         let setupOperations = liveOperations
         #endif
         #if DEBUG
-        let setupDefaults = uiState == nil ? defaults : (UserDefaults(suiteName: "ContainerDeskSetupUITest-\(UUID().uuidString)") ?? defaults)
+        let setupDefaults = uiMock ? (UserDefaults(suiteName: "ContainerDeskSetupUITest-\(UUID().uuidString)") ?? defaults) : defaults
         #else
         let setupDefaults = defaults
         #endif

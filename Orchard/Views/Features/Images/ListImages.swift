@@ -10,12 +10,18 @@ struct ImagesListView: View {
     @Binding var showOnlyImagesInUse: Bool
     @Binding var showImageSearch: Bool
     @Binding var showBuildImage: Bool
+    @State private var showUnusedCleanup = false
     @AppStorage("imageSortBy") private var sortBy: ImageSortOption = .name
     @AppStorage("imageSortAscending") private var sortAscending: Bool = true
     @FocusState var listFocusedTab: TabSelection?
 
     var body: some View {
         VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button("Delete Unused…") { showUnusedCleanup = true }
+                    .accessibilityIdentifier("images-delete-unused")
+            }.padding(8)
             if !imageService.pullProgress.isEmpty {
                 pullProgressBanner
                 Divider()
@@ -25,6 +31,9 @@ struct ImagesListView: View {
         .sheet(isPresented: $showImageSearch) {
             ImageSearchView()
                 .environmentObject(imageService)
+        }
+        .sheet(isPresented: $showUnusedCleanup) {
+            FreeUpSpaceView()
         }
         .sheet(isPresented: $showBuildImage) {
             BuildImageView()
@@ -39,9 +48,11 @@ struct ImagesListView: View {
                 imageService.pullProgress.values.sorted { $0.imageName < $1.imageName },
                 id: \.id
             ) { progress in
-                PullProgressRow(progress: progress) {
+                PullProgressRow(progress: progress, onDismiss: {
                     imageService.dismissPullProgress(progress.imageName)
-                }
+                }, onRetry: {
+                    Task { await imageService.pull(progress.imageName) }
+                })
             }
         }
         .padding(.horizontal, 12)

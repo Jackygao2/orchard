@@ -129,7 +129,11 @@ struct UITestBackend: ContainerBackend {
             reference: UITestSeed.imageReference
         )]
     }
-    func pullImage(reference: String, onProgress: (@Sendable (ImagePullMetrics) -> Void)?) async throws {}
+    func pullImage(reference: String, onProgress: (@Sendable (ImagePullMetrics) -> Void)?) async throws {
+        if ProcessInfo.processInfo.arguments.contains("--uitest-fail-pull") {
+            throw OrchardError.generic("Simulated registry failure")
+        }
+    }
     func deleteImage(reference: String) async throws {}
     func cleanUpOrphanedBlobs() async throws -> UInt64 { 0 }
     func systemImageReferences() async throws -> [String] { [] }

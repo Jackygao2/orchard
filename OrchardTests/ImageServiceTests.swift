@@ -60,7 +60,7 @@ func imagePullSuccess() async {
 }
 
 @MainActor
-@Test("Images pull: a failure marks progress failed and alerts")
+@Test("Images pull: a failure remains visible without blocking the window")
 func imagePullFailureAlerts() async {
     let backend = MockContainerBackend()
     backend.pullImageError = NotConfigured()
@@ -72,7 +72,21 @@ func imagePullFailureAlerts() async {
     if case .failed = service.pullProgress["docker.io/library/nginx:latest"]?.status {} else {
         Issue.record("expected .failed pull status, got \(String(describing: service.pullProgress["docker.io/library/nginx:latest"]?.status))")
     }
-    #expect(alert.current != nil)
+    #expect(alert.current == nil)
+}
+
+@MainActor
+@Test("Retry pulls the same reference after a failure")
+func imagePullRetry() async {
+    let backend = MockContainerBackend()
+    backend.pullImageError = NotConfigured()
+    let (service, _) = makeImageService(backend)
+    await service.pull("nginx:latest")
+    let failed = service.pullProgress["docker.io/library/nginx:latest"]
+    backend.pullImageError = nil
+    await service.pull(failed!.imageName)
+    #expect(backend.pulledReferences == ["docker.io/library/nginx:latest"])
+    #expect(service.pullProgress["docker.io/library/nginx:latest"]?.status == .completed)
 }
 
 @Test("Pull progress: fraction and detail derive from metrics, absent without totals")

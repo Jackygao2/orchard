@@ -513,4 +513,28 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(volume.exists)
     }
 
+    @MainActor
+    func testImageRetryAndUnusedCleanup() throws {
+        let app = launchedApp(extraArguments: ["--uitest-fail-pull"])
+        app.buttons["sidebar-dashboard"].click()
+        let pull = app.buttons["overview-pull"]
+        XCTAssertTrue(pull.waitForExistence(timeout: 10))
+        pull.click()
+        let field = app.textFields["image-pull-reference"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        field.click()
+        field.typeText("nginx:latest")
+        app.buttons["Pull"].click()
+        let retry = app.sheets.firstMatch.buttons["image-pull-retry"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 10))
+        retry.click()
+        XCTAssertTrue(retry.waitForExistence(timeout: 10))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+        let cleanup = app.buttons["images-delete-unused"]
+        XCTAssertTrue(cleanup.waitForExistence(timeout: 10))
+        cleanup.click()
+        XCTAssertTrue(app.staticTexts["Free Up Space"].waitForExistence(timeout: 10))
+        app.buttons["Cancel"].click()
+    }
+
 }

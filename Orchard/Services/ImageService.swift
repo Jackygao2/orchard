@@ -335,7 +335,7 @@ final class ImageService: ObservableObject {
 
     func pull(_ imageName: String) async {
         let cleanImageName = canonicalImageReference(imageName)
-        guard !cleanImageName.isEmpty else { return }
+        guard !cleanImageName.isEmpty, pullProgress[cleanImageName]?.status != .pulling else { return }
 
         pullProgress[cleanImageName] = ImagePullProgress(
             imageName: cleanImageName, status: .pulling, progress: 0.0, message: "Pulling image..."
@@ -363,7 +363,7 @@ final class ImageService: ObservableObject {
             pullProgress[cleanImageName] = ImagePullProgress(
                 imageName: cleanImageName, status: .failed(errorMsg), progress: 0.0, message: "Pull failed: \(errorMsg)"
             )
-            self.alertCenter.error("Failed to pull image: \(errorMsg)")
+            // The progress row remains visible for recovery, including while search is open.
         }
     }
 

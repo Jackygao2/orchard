@@ -16,6 +16,13 @@ struct ImageSearchView: View {
     var body: some View {
         VStack(spacing: 0) {
             searchHeader
+            ForEach(imageService.pullProgress.values.sorted { $0.imageName < $1.imageName }, id: \.id) { progress in
+                PullProgressRow(progress: progress, onDismiss: {
+                    imageService.dismissPullProgress(progress.imageName)
+                }, onRetry: {
+                    Task { await imageService.pull(progress.imageName) }
+                }).padding(.horizontal)
+            }
 
             Divider()
 
@@ -115,6 +122,7 @@ struct ImageSearchView: View {
                     .foregroundColor(.secondary)
 
                 TextField("e.g. ghcr.io/apple/containerization/vminit:0.33.3", text: $directReference)
+                    .accessibilityIdentifier("image-pull-reference")
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))
                     .onSubmit(pullByReference)
@@ -383,6 +391,7 @@ struct SearchResultRow: View {
 struct PullProgressRow: View {
     let progress: ImagePullProgress
     var onDismiss: (() -> Void)? = nil
+    var onRetry: (() -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -410,6 +419,11 @@ struct PullProgressRow: View {
                 if progress.status == .pulling {
                     ProgressView()
                         .scaleEffect(0.7)
+                }
+
+                if case .failed = progress.status, let onRetry {
+                    Button("Retry", action: onRetry)
+                        .accessibilityIdentifier("image-pull-retry")
                 }
 
                 if let onDismiss {

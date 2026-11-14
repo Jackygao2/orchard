@@ -179,6 +179,18 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testContainerStatusAccessibilityUpdatesAfterStart() throws {
+        let app = launchedApp(extraArguments: ["--uitest-status-transitions"])
+        openContainersTab(app)
+        app.staticTexts["uitest-db"].click()
+        let row = app.descendants(matching: .outlineRow)
+            .containing(.staticText, identifier: "uitest-db").firstMatch
+        XCTAssertTrue(row.images["Container status: stopped"].exists)
+        app.buttons["Start"].click()
+        XCTAssertTrue(row.images["Container status: running"].waitForExistence(timeout: 15))
+    }
+
+    @MainActor
     func testResourceSelectAllShortcutsRemainAvailable() throws {
         let app = launchedApp()
         for (key, identifier, rowName) in [

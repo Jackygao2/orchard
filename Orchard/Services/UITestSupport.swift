@@ -7,6 +7,7 @@ let uiTestMockBackendArgument = "--uitest-mock-backend"
 /// Launch argument that makes the stub fail `stopContainer`, so the smoke suite can exercise
 /// the error-alert surface (the #54 class: a failed user action must be visible).
 let uiTestFailStopArgument = "--uitest-fail-stop"
+let uiTestStatusTransitionsArgument = "--uitest-status-transitions"
 
 /// Distinctive seeded identifiers the UI smoke tests assert on.
 enum UITestSeed {
@@ -18,9 +19,18 @@ enum UITestSeed {
 }
 
 #if DEBUG
+private actor UITestContainerStatuses {
+    private var values: [String: String] = [:]
+
+    func value(for id: String, default fallback: String) -> String { values[id] ?? fallback }
+    func set(_ status: String, for id: String) { values[id] = status }
+}
+
 /// A `ContainerBackend` returning fixed fixtures. Debug-only; activated solely by the
 /// launch argument, never in normal use.
 struct UITestBackend: ContainerBackend {
+    private static let statuses = UITestContainerStatuses()
+
     private func container(id: String, status: String) -> Container {
         Container(
             status: status,
@@ -76,8 +86,10 @@ struct UITestBackend: ContainerBackend {
     }
 
     func listContainers() async throws -> [Container] {
-        [container(id: UITestSeed.containerID, status: "running"),
-         container(id: UITestSeed.stoppedContainerID, status: "stopped")]
+        let running = await Self.statuses.value(for: UITestSeed.containerID, default: "running")
+        let stopped = await Self.statuses.value(for: UITestSeed.stoppedContainerID, default: "stopped")
+        return [container(id: UITestSeed.containerID, status: running),
+                container(id: UITestSeed.stoppedContainerID, status: stopped)]
     }
     func listAllContainers() async throws -> [Container] { try await listContainers() }
     func containerDiskUsage(id: String) async throws -> UInt64 { 0 }
@@ -85,10 +97,17 @@ struct UITestBackend: ContainerBackend {
         if ProcessInfo.processInfo.arguments.contains(uiTestFailStopArgument) {
             throw OrchardError.generic("simulated stop failure")
         }
+        if ProcessInfo.processInfo.arguments.contains(uiTestStatusTransitionsArgument) {
+            await Self.statuses.set("stopped", for: id)
+        }
     }
     func killContainer(id: String, signal: Int32) async throws {}
     func deleteContainer(id: String, force: Bool) async throws {}
-    func bootstrapAndStart(id: String) async throws {}
+    func bootstrapAndStart(id: String) async throws {
+        if ProcessInfo.processInfo.arguments.contains(uiTestStatusTransitionsArgument) {
+            await Self.statuses.set("running", for: id)
+        }
+    }
     func runProcess(
         in containerID: String,
         command: [String],

@@ -84,6 +84,16 @@ final class StatsService: ObservableObject {
     }
 
     private var isRefreshing = false
+    private var sleeping = false
+    private var powerGeneration: UInt64 = 0
+
+    func setSleeping(_ value: Bool) {
+        guard sleeping != value else { return }
+        sleeping = value
+        powerGeneration &+= 1
+        if value { previousRaw.removeAll(); isStatsLoading = false }
+        reconfigureSampler()
+    }
 
     // MARK: - Sampling
 
@@ -196,7 +206,7 @@ final class StatsService: ObservableObject {
     /// fire `onDisappear` on minimize so `samplingConsumers` alone can't tell watched from hidden.
     private func reconfigureSampler() {
         let desired: TimeInterval?
-        if !effectivelyVisible {
+        if sleeping || !effectivelyVisible {
             desired = nil                            // nothing on screen → pause
         } else if samplingConsumers > 0 || menuBarOpen {
             desired = Self.samplingInterval          // a visible consumer is actively looking
@@ -245,7 +255,8 @@ final class StatsService: ObservableObject {
 
     func load(showLoading: Bool = true) async {
         // Overlapping loads must not pile up if one runs slow.
-        guard !isRefreshing else { return }
+        guard !sleeping, !isRefreshing else { return }
+        let generation = powerGeneration
         isRefreshing = true
         defer { isRefreshing = false }
 
@@ -323,6 +334,7 @@ final class StatsService: ObservableObject {
             return collected
         }
 
+        guard generation == powerGeneration, !sleeping else { return }
         // Log every failure so diagnostics aren't blind. Container-level failures get the
         // offending id; service-unavailable failures are logged once per tick (the first
         // match) and the rest folded in.

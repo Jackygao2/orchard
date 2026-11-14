@@ -107,6 +107,12 @@ final class ContainerListService: ObservableObject {
         old == new
     }
 
+    func invalidatePolls() {
+        loadGeneration &+= 1
+        appliedGeneration = loadGeneration
+        isLoading = false
+    }
+
     func loadContainers(showLoading: Bool = false) async {
         loadGeneration &+= 1
         let generation = loadGeneration

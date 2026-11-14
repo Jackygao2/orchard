@@ -92,6 +92,11 @@ final class SystemService: ObservableObject {
         self.isContainerInstalled = isContainerInstalled ?? { settings.isContainerInstalled }
     }
 
+    func invalidatePolls() {
+        lifecycleGeneration &+= 1
+        diskUsageGeneration &+= 1
+    }
+
     func checkSystemStatus() async {
         // Capture the generation at the start of the ping; if a lifecycle op bumps it
         // while the ping is in flight, drop this stale result rather than overwrite

@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import AppKit
 
 /// App version, read once from the bundle. (Previously `ContainerService.currentVersion`.)
 enum AppInfo {
@@ -20,6 +21,7 @@ final class AppServices: ObservableObject {
     let imageService: ImageService
     let imageBuildService: ImageBuildService
     let statsService: StatsService
+    let powerEvents: PowerEventsObserver
     let dnsService: DNSService
     let systemService: SystemService
     let diskPurgeService: DiskPurgeService
@@ -70,7 +72,8 @@ final class AppServices: ObservableObject {
         isContainerInstalled: (@MainActor () -> Bool)? = nil,
         rosettaService: RosettaService? = nil,
         simulateTerminal: Bool = false,
-        composePersistence: ComposeProjectsPersistence = ComposeProjectsPersistence()
+        composePersistence: ComposeProjectsPersistence = ComposeProjectsPersistence(),
+        powerNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter
     ) {
         let alertCenter = AlertCenter()
         self.alertCenter = alertCenter
@@ -104,7 +107,43 @@ final class AppServices: ObservableObject {
         self.containerListService = containerListService
         let statsService = StatsService(backend: backend, alertCenter: alertCenter, containerList: containerListService)
         self.statsService = statsService
-        self.machineService = MachineService(backend: machineBackend, alertCenter: alertCenter)
+        let machineService = MachineService(backend: machineBackend, alertCenter: alertCenter)
+        self.machineService = machineService
+        let powerEvents = PowerEventsObserver(center: powerNotificationCenter)
+        self.powerEvents = powerEvents
+        powerEvents.onSleep = { [weak systemService, weak containerListService, weak statsService] in
+            systemService?.invalidatePolls()
+            containerListService?.invalidatePolls()
+            statsService?.setSleeping(true)
+        }
+        powerEvents.onWake = { [weak statsService] in statsService?.setSleeping(false) }
+        powerEvents.onRefresh = { [weak powerEvents, weak systemService, weak containerListService, weak imageService, weak builderService, weak dnsService, weak networkService, weak volumeService, weak machineService, weak statsService] in
+            guard let powerEvents, let systemService, let containerListService else { return }
+            systemService.invalidatePolls()
+            containerListService.invalidatePolls()
+            let revision = powerEvents.refreshRevision &+ 1
+            Task { @MainActor in
+                guard !powerEvents.isSleeping, !systemService.isSystemLoading, let token = powerEvents.beginPoll() else { return }
+                defer { powerEvents.endPoll(token) }
+                await systemService.checkSystemStatus()
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision, systemService.systemStatus == .running else { return }
+                await containerListService.loadContainers(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
+                await imageService?.load()
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
+                await builderService?.loadBuilders()
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
+                await dnsService?.load(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
+                await networkService?.load(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
+                await volumeService?.load(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
+                await machineService?.load(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
+                await statsService?.load(showLoading: false)
+            }
+        }
         self.modelService = ModelService(backend: modelBackend, settings: settings)
         self.modelServerService = ModelServerService(engine: modelServerEngine, alertCenter: alertCenter)
         self.rosettaService = rosettaService ?? RosettaService()

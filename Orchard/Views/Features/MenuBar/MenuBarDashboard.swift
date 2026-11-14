@@ -11,6 +11,7 @@ struct MenuBarView: View {
     @EnvironmentObject var dnsService: DNSService
     @EnvironmentObject var networkService: NetworkService
     @EnvironmentObject var statsService: StatsService
+    @EnvironmentObject var powerEvents: PowerEventsObserver
     @State private var refreshTimer: Timer?
     @State private var hoveringTop = false
     @State private var hoveredContainer: String?
@@ -248,13 +249,26 @@ struct MenuBarView: View {
             // panel is its own visibility signal, so history keeps filling while it's shown.
             statsService.beginMenuBarSampling()
             startRefreshTimer()
-
+            guard !powerEvents.isSleeping, !Task.isCancelled else { return }
+            let revision = powerEvents.refreshRevision
             await systemService.checkSystemStatus()
+            guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision, systemService.systemStatus == .running else { return }
             await containerListService.loadContainers(showLoading: true)
+            guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
             await builderService.loadBuilders()
+            guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
             await dnsService.load(showLoading: true)
+            guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
             await networkService.load(showLoading: true)
+            guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
             await systemService.loadSystemDiskUsage(showLoading: false)
+        }
+        .onChange(of: powerEvents.isSleeping) { _, sleeping in
+            if sleeping { stopRefreshTimer() }
+        }
+        .onChange(of: powerEvents.refreshRevision) { _, _ in
+            guard !powerEvents.isSleeping else { return }
+            startRefreshTimer()
         }
         .onDisappear {
             stopRefreshTimer()
@@ -491,17 +505,23 @@ struct MenuBarView: View {
         // Invalidate any existing timer first so a re-entrant `.task` can't strand a duplicate
         // running alongside the new one and double the background polling.
         refreshTimer?.invalidate()
+        guard !powerEvents.isSleeping else { return }
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
             Task { @MainActor in
                 // A start/stop click owns `systemStatus` while it's in flight; skip the
                 // status refresh so a stale ping started before the click doesn't land
                 // after `.stopped` and flip the state back to `.running`.
-                if !systemService.isSystemLoading {
-                    await systemService.checkSystemStatus()
-                }
+                guard !powerEvents.isSleeping, !systemService.isSystemLoading, let token = powerEvents.beginPoll() else { return }
+                defer { powerEvents.endPoll(token) }
+                let revision = powerEvents.refreshRevision
+                await systemService.checkSystemStatus()
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision, systemService.systemStatus == .running else { return }
                 await containerListService.loadContainers(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
                 await builderService.loadBuilders()
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
                 await dnsService.load(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
                 await networkService.load(showLoading: false)
             }
         }

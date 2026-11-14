@@ -13,6 +13,7 @@ struct ContentView: View {
     @EnvironmentObject var diskPurgeService: DiskPurgeService
     @EnvironmentObject var builderService: BuilderService
     @EnvironmentObject var statsService: StatsService
+    @EnvironmentObject var powerEvents: PowerEventsObserver
     @EnvironmentObject var machineService: MachineService
     @EnvironmentObject var clusterService: ClusterService
     @EnvironmentObject var modelService: ModelService
@@ -68,6 +69,7 @@ struct ContentView: View {
 
     @State private var refreshTimer: Timer?
     @State private var initialLoadTask: Task<Void, Never>?
+    @State private var initialLoadGeneration: UInt64 = 0
 
     @FocusState private var listFocusedTab: TabSelection?
 
@@ -563,12 +565,7 @@ struct ContentView: View {
         }
 
         .task {
-            if initialLoadTask == nil {
-                initialLoadTask = Task {
-                    await performInitialLoad()
-                    initialLoadTask = nil
-                }
-            }
+            startInitialLoad()
             startRefreshTimer()
         }
         // The timer's lifetime must match the window, not one branch of `baseView`:
@@ -578,19 +575,26 @@ struct ContentView: View {
         .onDisappear {
             stopRefreshTimer()
         }
+        .onChange(of: powerEvents.isSleeping) { _, sleeping in
+            if sleeping {
+                stopRefreshTimer()
+                initialLoadGeneration &+= 1
+                initialLoadTask?.cancel()
+                initialLoadTask = nil
+            }
+        }
+        .onChange(of: powerEvents.refreshRevision) { _, _ in
+            guard !powerEvents.isSleeping else { return }
+            startRefreshTimer()
+        }
         .onChange(of: selectedTab) { _, _ in
             // The filter box is shared across tabs; a query typed in one tab would
             // otherwise silently filter the next.
             searchText = ""
         }
         .onChange(of: systemService.systemStatus) { _, newStatus in
-            if newStatus == .running {
-                if initialLoadTask == nil {
-                    initialLoadTask = Task {
-                        await performInitialLoad()
-                        initialLoadTask = nil
-                    }
-                }
+            if newStatus == .running && !powerEvents.isSleeping {
+                if !powerEvents.isPolling { startInitialLoad() }
                 startRefreshTimer()
             }
         }
@@ -741,8 +745,22 @@ struct ContentView: View {
         }
     }
 
+    private func startInitialLoad(replacing: Bool = false) {
+        guard !powerEvents.isSleeping, replacing || initialLoadTask == nil else { return }
+        initialLoadTask?.cancel()
+        initialLoadGeneration &+= 1
+        let generation = initialLoadGeneration
+        initialLoadTask = Task {
+            await performInitialLoad()
+            if generation == initialLoadGeneration { initialLoadTask = nil }
+        }
+    }
+
     private func performInitialLoad() async {
+        guard !powerEvents.isSleeping, !Task.isCancelled else { return }
+        let revision = powerEvents.refreshRevision
         await systemService.checkSystemStatus()
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
 
         // If the system is stopped or incompatible, don't hammer the XPC services
         // with loading calls. They will just fail and show dialogs.
@@ -752,36 +770,56 @@ struct ContentView: View {
 
         // Load stats first for immediate display
         await statsService.load(showLoading: true)
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
         await systemService.loadSystemDiskUsage(showLoading: true)
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
 
         await containerListService.loadContainers(showLoading: true)
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
         await imageService.load()
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
         await builderService.loadBuilders()
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
 
         await dnsService.load(showLoading: true)
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
         await networkService.load(showLoading: true)
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
         await volumeService.load(showLoading: true)
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
         await machineService.load(showLoading: true)
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
         await clusterService.probePluginAvailability()
+        guard !powerEvents.isSleeping, !Task.isCancelled, revision == powerEvents.refreshRevision else { return }
         await modelService.load(showLoading: true)
     }
 
     private func startRefreshTimer() {
         refreshTimer?.invalidate()
+        guard !powerEvents.isSleeping else { return }
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
             Task { @MainActor in
                 // A start/stop/restart owns `systemStatus` while it's in flight, as in the
                 // menu bar's refresh.
-                guard !systemService.isSystemLoading else { return }
+                guard !powerEvents.isSleeping, !systemService.isSystemLoading, let token = powerEvents.beginPoll() else { return }
+                defer { powerEvents.endPoll(token) }
+                let revision = powerEvents.refreshRevision
                 await systemService.checkSystemStatus()
-                guard systemService.systemStatus == .running else { return }
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision, systemService.systemStatus == .running else { return }
                 await containerListService.loadContainers(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
                 await imageService.load()
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
                 await builderService.loadBuilders()
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
                 await dnsService.load(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
                 await networkService.load(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
                 await volumeService.load(showLoading: false, readsContainers: selectedTab == .volumes)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
                 await machineService.load(showLoading: false)
+                guard !powerEvents.isSleeping, revision == powerEvents.refreshRevision else { return }
                 await modelService.refreshTick()
             }
         }

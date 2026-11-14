@@ -107,6 +107,7 @@ extension View {
             .environmentObject(s.imageService)
             .environmentObject(s.imageBuildService)
             .environmentObject(s.statsService)
+            .environmentObject(s.powerEvents)
             .environmentObject(s.dnsService)
             .environmentObject(s.systemService)
             .environmentObject(s.diskPurgeService)

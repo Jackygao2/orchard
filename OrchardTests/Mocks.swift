@@ -107,6 +107,7 @@ final class MockContainerBackend: ContainerBackend, @unchecked Sendable {
     private var _cleanHandler: (@Sendable () async -> Void)?
     private var _deleteImageError: Error?
     private var _listNetworksError: Error?
+    private var _listNetworksHandler: (@Sendable () async -> Void)?
     private var _createNetworkError: Error?
     private var _deleteNetworkError: Error?
     private var _createContainerError: Error?
@@ -219,6 +220,10 @@ final class MockContainerBackend: ContainerBackend, @unchecked Sendable {
     var deleteImageError: Error? {
         get { lock.withLock { _deleteImageError } }
         set { lock.withLock { _deleteImageError = newValue } }
+    }
+    var listNetworksHandler: (@Sendable () async -> Void)? {
+        get { lock.withLock { _listNetworksHandler } }
+        set { lock.withLock { _listNetworksHandler = newValue } }
     }
     var listNetworksError: Error? {
         get { lock.withLock { _listNetworksError } }
@@ -503,7 +508,9 @@ final class MockContainerBackend: ContainerBackend, @unchecked Sendable {
     }
     func listNetworks() async throws -> [ContainerNetwork] {
         if let listNetworksError { throw listNetworksError }
-        return networks
+        let snapshot = networks
+        if let handler = listNetworksHandler { await handler() }
+        return snapshot
     }
     func createNetwork(name: String, subnet: String?, labels: [String: String]) async throws {
         if let createNetworkError { throw createNetworkError }

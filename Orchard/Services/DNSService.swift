@@ -9,6 +9,9 @@ final class DNSService: ObservableObject {
     @Published var dnsDomains: [DNSDomain] = []
     @Published var isDNSLoading = false
 
+    /// Changes on sleep or session refresh, invalidating older asynchronous reads.
+    var powerEpoch: @MainActor () -> UInt64 = { 0 }
+
     private let runner: CommandRunner
     private let settings: SettingsStore
     private let alertCenter: AlertCenter
@@ -79,6 +82,7 @@ final class DNSService: ObservableObject {
     }
 
     func load(showLoading: Bool = true) async {
+        let epoch = powerEpoch()
         if showLoading {
             isDNSLoading = true
             alertCenter.dismiss()
@@ -89,16 +93,19 @@ final class DNSService: ObservableObject {
         // user-initiated loads; background polls reuse the already-cached value.
         if showLoading {
             await refreshSystemProperties()
+            guard epoch == powerEpoch() else { return }
         }
         // Read from container's configuration as the create reads it, cheap enough for every
         // load. One that fails keeps what was read before, but says the domain isn't known.
         do {
             let defaults = try await readContainerDNSDefaults()
             let hostDomain = try await readHostDNSDomain()
+            guard epoch == powerEpoch() else { return }
             containerDNSDefaults = defaults
             hostDNSDomain = hostDomain.flatMap { $0.isEmpty ? nil : $0 }
             hasReadDNSConfig = true
         } catch {
+            guard epoch == powerEpoch() else { return }
             hasReadDNSConfig = false
         }
 
@@ -107,6 +114,7 @@ final class DNSService: ObservableObject {
                 program: settings.safeContainerBinaryPath(),
                 arguments: ["system", "dns", "ls", "--format=json"])
 
+            guard epoch == powerEpoch() else { return }
             if listResult.failed {
                 // Leave the existing domains untouched rather than blanking them; only
                 // alert when the user asked for this load, not on a background refresh.
@@ -126,6 +134,7 @@ final class DNSService: ObservableObject {
                 dnsDomains = parsed.map { withLocalhostRedirect(markedDefault($0)) }
             }
         } catch {
+            guard epoch == powerEpoch() else { return }
             if showLoading {
                 alertCenter.error("Failed to load DNS domains: \(error.localizedDescription)")
             }

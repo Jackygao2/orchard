@@ -28,6 +28,9 @@ final class BuilderService: ObservableObject {
     @Published var isBuilderLoading = false
     @Published var isBuildersLoading = false
 
+    /// Changes on sleep or session refresh, invalidating older asynchronous reads.
+    var powerEpoch: @MainActor () -> UInt64 = { 0 }
+
     private let runner: CommandRunner
     private let settings: SettingsStore
     private let alertCenter: AlertCenter
@@ -39,6 +42,7 @@ final class BuilderService: ObservableObject {
     }
 
     func loadBuilders() async {
+        let epoch = powerEpoch()
         isBuildersLoading = true
 
         // This runs on a 5s poll — a spawn failure (binary missing), a nonzero exit, and a
@@ -54,6 +58,7 @@ final class BuilderService: ObservableObject {
                 arguments: ["builder", "status", "--format", "json"]
             )
         } catch {
+            guard epoch == powerEpoch() else { isBuildersLoading = false; return }
             builders = []
             builderStatus = .stopped
             isBuildersLoading = false
@@ -61,6 +66,7 @@ final class BuilderService: ObservableObject {
             return
         }
 
+        guard epoch == powerEpoch() else { isBuildersLoading = false; return }
         if result.failed {
             builders = []
             builderStatus = .stopped

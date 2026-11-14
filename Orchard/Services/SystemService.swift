@@ -57,6 +57,9 @@ final class SystemService: ObservableObject {
     @Published var diskUsageBreakdown: DiskUsageBreakdown?
     @Published var isSystemDiskUsageLoading = false
 
+    /// Changes on sleep or session refresh, invalidating older asynchronous reads.
+    var powerEpoch: @MainActor () -> UInt64 = { 0 }
+
     private let backend: ContainerBackend
     private let runner: CommandRunner
     private let settings: SettingsStore
@@ -436,6 +439,7 @@ final class SystemService: ObservableObject {
     // MARK: - System properties
 
     func loadSystemProperties(showLoading: Bool = true) async {
+        let epoch = powerEpoch()
         // The recommended kernel is a property, so its status follows every load, failed or not.
         defer { loadKernelStatus() }
         if showLoading {
@@ -451,11 +455,13 @@ final class SystemService: ObservableObject {
                 program: settings.safeContainerBinaryPath(),
                 arguments: ["system", "property", "list", "--format=json"])
         } catch {
+            guard epoch == powerEpoch() else { isSystemPropertiesLoading = false; return }
             alertCenter.error("Failed to load system properties: \(error.localizedDescription)", source: source)
             isSystemPropertiesLoading = false
             return
         }
 
+        guard epoch == powerEpoch() else { isSystemPropertiesLoading = false; return }
         if result.failed {
             alertCenter.error(.cliFailed(command: "system property list", exitCode: result.exitCode, stderr: result.stderr),
                               source: source)

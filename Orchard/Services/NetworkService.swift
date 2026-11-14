@@ -6,6 +6,9 @@ final class NetworkService: ObservableObject {
     @Published var networks: [ContainerNetwork] = []
     @Published var isNetworksLoading = false
 
+    /// Changes on sleep or session refresh, invalidating older asynchronous reads.
+    var powerEpoch: @MainActor () -> UInt64 = { 0 }
+
     private let backend: ContainerBackend
     private let alertCenter: AlertCenter
 
@@ -15,6 +18,7 @@ final class NetworkService: ObservableObject {
     }
 
     func load(showLoading: Bool = true) async {
+        let epoch = powerEpoch()
         if showLoading {
             isNetworksLoading = true
             self.alertCenter.dismiss()
@@ -22,11 +26,13 @@ final class NetworkService: ObservableObject {
 
         do {
             let networks = try await backend.listNetworks()
+            guard epoch == powerEpoch() else { isNetworksLoading = false; return }
             if networks != self.networks {
                 self.networks = networks
             }
             self.isNetworksLoading = false
         } catch {
+            guard epoch == powerEpoch() else { isNetworksLoading = false; return }
             if showLoading {
                 self.alertCenter.error("Failed to load networks: \(error.localizedDescription)")
             }

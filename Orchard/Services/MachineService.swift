@@ -11,6 +11,9 @@ final class MachineService: ObservableObject {
     /// predates machine support. Drives an explanatory empty state instead of an error alert.
     @Published var apiUnavailable = false
 
+    /// Changes on sleep or session refresh, invalidating older asynchronous reads.
+    var powerEpoch: @MainActor () -> UInt64 = { 0 }
+
     private let backend: MachineBackend
     private let alertCenter: AlertCenter
 
@@ -20,23 +23,27 @@ final class MachineService: ObservableObject {
     }
 
     func load(showLoading: Bool = true) async {
+        let epoch = powerEpoch()
         if showLoading {
             isLoading = true
         }
 
         do {
             let machines = try await backend.listMachines()
+            guard epoch == powerEpoch() else { isLoading = false; return }
             if machines != self.machines {
                 self.machines = machines
             }
             self.apiUnavailable = false
             self.isLoading = false
         } catch OrchardError.machineApiUnavailable {
+            guard epoch == powerEpoch() else { isLoading = false; return }
             // Expected on installs without machine support: show the empty state, never alert.
             self.apiUnavailable = true
             self.machines = []
             self.isLoading = false
         } catch {
+            guard epoch == powerEpoch() else { isLoading = false; return }
             if showLoading {
                 self.alertCenter.error("Failed to load machines: \(error.localizedDescription)")
             }

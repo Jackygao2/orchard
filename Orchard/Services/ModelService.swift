@@ -16,6 +16,9 @@ final class ModelService: ObservableObject {
     @Published private(set) var endpoints: [ModelEndpoint] = []
     @Published var isLoading = false
 
+    /// Changes on sleep or session refresh, invalidating older asynchronous reads.
+    var powerEpoch: @MainActor () -> UInt64 = { 0 }
+
     private let backend: ModelBackend
     private let settings: SettingsStore
     /// Minimum gap between background probes while no provider is detected.
@@ -30,6 +33,7 @@ final class ModelService: ObservableObject {
     }
 
     func load(showLoading: Bool = true) async {
+        let epoch = powerEpoch()
         if showLoading { isLoading = true }
         lastProbeAt = Date()
         let configured = settings.modelEndpoints
@@ -37,6 +41,7 @@ final class ModelService: ObservableObject {
         let providers = await backend.detectProviders(
             endpoints: configured,
             apiKeys: settings.modelAPIKeys(for: configured))
+        guard epoch == powerEpoch() else { isLoading = false; return }
         if providers != self.providers {
             self.providers = providers
         }

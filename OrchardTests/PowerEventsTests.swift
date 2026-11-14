@@ -128,3 +128,27 @@ func powerDiscardsStalePing() async {
     await ping.value
     #expect(services.systemService.containerVersion == "new")
 }
+
+@MainActor
+@Test("A pre-sleep network read cannot overwrite the wake snapshot")
+func powerDiscardsStaleNetwork() async {
+    let backend = MockContainerBackend()
+    backend.networks = [makeNetwork(id: "old")]
+    let center = NotificationCenter()
+    let observer = PowerEventsObserver(center: center)
+    let service = NetworkService(backend: backend, alertCenter: AlertCenter())
+    service.powerEpoch = { observer.epoch }
+    let entered = TestGate()
+    let release = TestGate()
+    backend.listNetworksHandler = { entered.open(); await release.wait() }
+    let old = Task { await service.load(showLoading: false) }
+    await entered.wait()
+    center.post(name: NSWorkspace.willSleepNotification, object: nil)
+    center.post(name: NSWorkspace.didWakeNotification, object: nil)
+    backend.listNetworksHandler = nil
+    backend.networks = [makeNetwork(id: "new")]
+    await service.load(showLoading: false)
+    release.open()
+    await old.value
+    #expect(service.networks.map(\.id) == ["new"])
+}

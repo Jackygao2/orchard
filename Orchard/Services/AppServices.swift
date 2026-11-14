@@ -111,16 +111,26 @@ final class AppServices: ObservableObject {
         self.machineService = machineService
         let powerEvents = PowerEventsObserver(center: powerNotificationCenter)
         self.powerEvents = powerEvents
-        powerEvents.onSleep = { [weak systemService, weak containerListService, weak statsService] in
+        let epoch: @MainActor () -> UInt64 = { [weak powerEvents] in powerEvents?.epoch ?? 0 }
+        imageService.powerEpoch = epoch
+        builderService.powerEpoch = epoch
+        dnsService.powerEpoch = epoch
+        networkService.powerEpoch = epoch
+        volumeService.powerEpoch = epoch
+        machineService.powerEpoch = epoch
+        systemService.powerEpoch = epoch
+        powerEvents.onSleep = { [weak systemService, weak containerListService, weak statsService, weak imageService] in
             systemService?.invalidatePolls()
             containerListService?.invalidatePolls()
             statsService?.setSleeping(true)
+            imageService?.invalidateSizeReads()
         }
         powerEvents.onWake = { [weak statsService] in statsService?.setSleeping(false) }
         powerEvents.onRefresh = { [weak powerEvents, weak systemService, weak containerListService, weak imageService, weak builderService, weak dnsService, weak networkService, weak volumeService, weak machineService, weak statsService] in
             guard let powerEvents, let systemService, let containerListService else { return }
             systemService.invalidatePolls()
             containerListService.invalidatePolls()
+            imageService?.invalidateSizeReads()
             let revision = powerEvents.refreshRevision &+ 1
             Task { @MainActor in
                 guard !powerEvents.isSleeping, !systemService.isSystemLoading, let token = powerEvents.beginPoll() else { return }
@@ -144,7 +154,9 @@ final class AppServices: ObservableObject {
                 await statsService?.load(showLoading: false)
             }
         }
-        self.modelService = ModelService(backend: modelBackend, settings: settings)
+        let modelService = ModelService(backend: modelBackend, settings: settings)
+        modelService.powerEpoch = epoch
+        self.modelService = modelService
         self.modelServerService = ModelServerService(engine: modelServerEngine, alertCenter: alertCenter)
         self.rosettaService = rosettaService ?? RosettaService()
         // Compose runs plans through the same backend as everything else, and its builds

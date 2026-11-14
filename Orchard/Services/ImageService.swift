@@ -188,6 +188,9 @@ final class ImageService: ObservableObject {
     @Published var searchResultsHasMore = false
     @Published var isLoadingMoreSearchResults = false
 
+    /// Changes on sleep or session refresh, invalidating older asynchronous reads.
+    var powerEpoch: @MainActor () -> UInt64 = { 0 }
+
     private let inspectGate = InspectGate()
     private let imageSizeRetryDelay: TimeInterval = 30
     private var imageSizeRetryAfter: [String: Date] = [:]
@@ -206,12 +209,14 @@ final class ImageService: ObservableObject {
     /// Refresh the image list. Driven by the 5s poll, so failures are logged, not
     /// modal — pull/delete (user actions) alert on their own.
     func load(showLoading: Bool = false) async {
+        let epoch = powerEpoch()
         if showLoading {
             isImagesLoading = true
         }
 
         do {
             let newImages = try await backend.listImages()
+            guard epoch == powerEpoch() else { isImagesLoading = false; return }
             // Only republish (and animate) when the list actually changed — otherwise
             // every 5s tick invalidates the whole view tree for nothing.
             if newImages != self.images {
@@ -230,6 +235,7 @@ final class ImageService: ObservableObject {
             }
             enrichImageSizes(for: newImages)
         } catch {
+            guard epoch == powerEpoch() else { isImagesLoading = false; return }
             self.alertCenter.error(error.localizedDescription, source: showLoading ? .user : .background)
             self.isImagesLoading = false
             Log.containers.error("\(error.localizedDescription)")
@@ -273,7 +279,15 @@ final class ImageService: ObservableObject {
         return Int64(image.descriptor.size)
     }
 
+    func invalidateSizeReads() {
+        imageSizes = imageSizes.filter { _, value in
+            if case .loading = value { return false }
+            return true
+        }
+    }
+
     private func enrichImageSizes(for images: [ContainerImage]) {
+        let epoch = powerEpoch()
         let backend = backend
         let inspectGate = inspectGate
         let retryDelay = imageSizeRetryDelay
@@ -304,6 +318,7 @@ final class ImageService: ObservableObject {
                 }
                 await inspectGate.leave()
                 await MainActor.run {
+                    guard epoch == self.powerEpoch() else { return }
                     self.imageSizes[ref] = result
                     if case .failed = result {
                         self.imageSizeRetryAfter[ref] = Date().addingTimeInterval(retryDelay)

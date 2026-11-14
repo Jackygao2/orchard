@@ -57,6 +57,9 @@ final class VolumeService: ObservableObject {
     @Published var presentsCreateSheet = false
     @Published var presentsPruneSheet = false
 
+    /// Changes on sleep or session refresh, invalidating older asynchronous reads.
+    var powerEpoch: @MainActor () -> UInt64 = { 0 }
+
     private let backend: ContainerBackend
     private let alertCenter: AlertCenter
 
@@ -81,6 +84,7 @@ final class VolumeService: ObservableObject {
     /// elsewhere, or a form listing volumes to pick from, leaves it off.
     @discardableResult
     func load(showLoading: Bool = true, readsContainers: Bool = true) async -> Bool {
+        let epoch = powerEpoch()
         if showLoading {
             isLoading = true
         }
@@ -88,8 +92,10 @@ final class VolumeService: ObservableObject {
             async let listedVolumes = backend.listVolumes()
             async let listedContainers: [Container]? = readsContainers ? backend.listAllContainers() : nil
             let volumes = try await listedVolumes.sorted { $0.name < $1.name }
+            let containers = try await listedContainers
+            guard epoch == powerEpoch() else { isLoading = false; return false }
             if volumes != self.volumes { self.volumes = volumes }
-            if let containers = try await listedContainers, containers != self.containers {
+            if let containers, containers != self.containers {
                 self.containers = containers
             }
             let names = Set(volumes.map(\.name))
@@ -99,6 +105,7 @@ final class VolumeService: ObservableObject {
             await measure(volumes.filter { sizes[$0.name] == nil })
             return true
         } catch {
+            guard epoch == powerEpoch() else { isLoading = false; return false }
             if showLoading {
                 alertCenter.error("Failed to load volumes: \(error.localizedDescription)")
             }
@@ -145,6 +152,7 @@ final class VolumeService: ObservableObject {
     }
 
     private func measure(_ volumes: [ContainerVolume]) async {
+        let epoch = powerEpoch()
         let backend = backend
         await withTaskGroup(of: (String, MeasuredSize).self) { group in
             for volume in volumes {
@@ -155,6 +163,7 @@ final class VolumeService: ObservableObject {
                 }
             }
             for await (name, size) in group {
+                guard epoch == powerEpoch() else { group.cancelAll(); return }
                 sizes[name] = size
             }
         }

@@ -57,8 +57,11 @@ enum ComposeDown {
 
     @MainActor
     static func requestRemoval(_ project: ComposeProject, volumeService: VolumeService, pending: Binding<VolumeRemovalRequest?>) {
-        let request = removalRequest(project: project, volumes: volumeService.volumes, containers: volumeService.containers, sizes: volumeService.sizes)
-        pending.wrappedValue = request
+        Task {
+            guard await volumeService.load(showLoading: true, readsContainers: true) else { return }
+            let request = removalRequest(project: project, volumes: volumeService.volumes, containers: volumeService.containers, sizes: volumeService.sizes)
+            pending.wrappedValue = request
+        }
     }
 }
 

@@ -149,7 +149,10 @@ struct UITestBackend: ContainerBackend {
     }
     func createNetwork(name: String, subnet: String?, labels: [String: String]) async throws {}
     func deleteNetwork(id: String) async throws {}
-    func listVolumes() async throws -> [ContainerVolume] { [] }
+    func listVolumes() async throws -> [ContainerVolume] {
+        guard ProcessInfo.processInfo.arguments.contains("--uitest-compose-volume") else { return [] }
+        return [ContainerVolume(name: "uitest-plan_data", format: "ext4", source: "/tmp/uitest-plan-data/volume.img", creationDate: Date(), labels: ["com.compose.project": "uitest-plan"], capacityBytes: nil)]
+    }
     func createVolume(name: String, size: String?, labels: [String: String]) async throws -> ContainerVolume {
         ContainerVolume(name: name, format: "ext4", source: "", creationDate: Date(), labels: labels, capacityBytes: nil)
     }

@@ -79,7 +79,8 @@ final class VolumeService: ObservableObject {
     /// `refreshSizes` reads them all again. `readsContainers` also reads which containers
     /// mount them, which only the Volumes tab and a delete need, so a background refresh
     /// elsewhere, or a form listing volumes to pick from, leaves it off.
-    func load(showLoading: Bool = true, readsContainers: Bool = true) async {
+    @discardableResult
+    func load(showLoading: Bool = true, readsContainers: Bool = true) async -> Bool {
         if showLoading {
             isLoading = true
         }
@@ -96,11 +97,13 @@ final class VolumeService: ObservableObject {
             sizes = sizes.filter { names.contains($0.key) }
             isLoading = false
             await measure(volumes.filter { sizes[$0.name] == nil })
+            return true
         } catch {
             if showLoading {
                 alertCenter.error("Failed to load volumes: \(error.localizedDescription)")
             }
             isLoading = false
+            return false
         }
     }
 

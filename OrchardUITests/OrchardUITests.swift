@@ -471,4 +471,29 @@ final class OrchardUITests: XCTestCase {
         app.buttons["Done"].click()
     }
 
+    @MainActor
+    func testComposeVolumeRemovalCancellation() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try "name: uitest-plan\nservices:\n  web:\n    image: nginx\n".write(to: directory.appendingPathComponent("compose.yaml"), atomically: true, encoding: .utf8)
+        let app = launchedApp(extraArguments: ["--uitest-compose-review", directory.path, "--uitest-compose-volume"])
+        app.typeKey("3", modifierFlags: .command)
+        let add = app.buttons["compose-confirm-import"]
+        XCTAssertTrue(add.waitForExistence(timeout: 20))
+        add.click()
+        let remove = app.buttons["Remove Volumes…"]
+        XCTAssertTrue(remove.waitForExistence(timeout: 20))
+        for _ in 0..<20 where !remove.isEnabled { sleep(1) }
+        XCTAssertTrue(remove.isEnabled)
+        remove.click()
+        let cancel = app.buttons["Cancel"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 20))
+        cancel.click()
+        XCTAssertTrue(remove.waitForExistence(timeout: 10))
+        remove.click()
+        XCTAssertTrue(cancel.waitForExistence(timeout: 20))
+        cancel.click()
+    }
+
 }

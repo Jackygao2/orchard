@@ -856,6 +856,24 @@ struct ComposeVolumeTests {
         #expect(harness.backend.deletedVolumeNames == ["shop_pgdata"])
     }
 
+    @Test("Confirmation excludes a volume mounted by another project")
+    func externalMount() async throws {
+        let harness = try Harness(file: Self.file)
+        defer { harness.cleanUp() }
+        let labels = [ProjectIdentity.projectLabel: "shop"]
+        let held = volume("shop_pgdata", labels: labels)
+        let free = volume("shop_free", labels: labels)
+        let mounts = #"[{ "type": { "volume": { "name": "shop_pgdata", "format": "ext4" } }, "source": "/volumes/shop_pgdata/volume.img", "options": [], "destination": "/data" }]"#
+        let other = try composeContainer(id: "other-web", project: "other", service: "web", mountsJSON: mounts)
+        harness.backend.volumes = [held, free]
+        harness.backend.containers = [other]
+        let request = ComposeDown.removalRequest(project: harness.project, volumes: [held, free], containers: [other], sizes: [:])
+        #expect(request.names == ["shop_free"])
+        #expect(!request.message.contains("shop_pgdata"))
+        await harness.service.down(project: harness.project, options: DownOptions(removeVolumes: true), confirmedVolumes: ["shop_pgdata", "shop_free"])
+        #expect(harness.backend.deletedVolumeNames == ["shop_free"])
+    }
+
     @Test("A project with no containers left can still have the volumes it kept removed")
     func downAfterKeepingVolumes() async throws {
         let harness = try Harness(file: Self.file)

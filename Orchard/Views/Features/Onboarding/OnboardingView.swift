@@ -71,8 +71,16 @@ struct OnboardingView: View {
                 manualLink
             }
         case .installing:
-            ProgressView(installer.currentStep?.title ?? "Installing Runtime…")
-            if let note = installer.currentStep?.note { Text(note).foregroundStyle(.secondary) }
+            Text("Installing Apple container").font(.headline)
+            ForEach(ContainerInstallService.Step.allCases, id: \.rawValue) { step in
+                HStack {
+                    if installer.currentStep == step { ProgressView().controlSize(.small) }
+                    else if let current = installer.currentStep, step.rawValue < current.rawValue { SwiftUI.Image(systemName: "checkmark.circle.fill").foregroundStyle(.green) }
+                    else { SwiftUI.Image(systemName: "circle").foregroundStyle(.secondary) }
+                    Text(step.title)
+                    if installer.currentStep == step, let note = step.note { Text(note).foregroundStyle(.secondary) }
+                }
+            }
             if installer.canCancel { Button("Cancel") { onboarding.cancelInstallation() } }
         case .start:
             heading("Start Apple container", "The Runtime is installed but not running. Start it now? Your choice is remembered for future starts.")
@@ -93,7 +101,8 @@ struct OnboardingView: View {
             heading("Runtime version not supported", "ContainerDesk works with Apple container 1.x. Version \(version) is installed. Change it manually; ContainerDesk will not downgrade it.")
             manualLink
         case .verifying:
-            ProgressView("Verifying the service, containers and images…")
+            ProgressView("Verifying the Runtime…")
+            Text("Checking service response, container and image lists, and version compatibility.").foregroundStyle(.secondary)
         case .plugin:
             heading("Compose in Terminal (optional)", "Compose projects work in ContainerDesk without a plugin. Install the community plugin to use container compose in Terminal. Version \(ComposePluginService.linkedVersion) is verified with a pinned SHA-256 before installation.")
             HStack {
@@ -114,6 +123,9 @@ struct OnboardingView: View {
             HStack {
                 Button("Retry") { onboarding.retry() }.buttonStyle(.borderedProminent)
                 if onboarding.pluginFailed { Button("Skip Plugin") { onboarding.skipPlugin() } }
+                if message.localizedCaseInsensitiveContains("not signed") {
+                    Link("Report a Problem", destination: URL(string: "https://github.com/andrew-waters/orchard/issues/new")!)
+                }
                 Button("Open Console") {
                     if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.apple.Console") {
                         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())

@@ -544,7 +544,7 @@ struct InfoRow: View {
         HStack {
             Text(label)
                 .font(.subheadline)
-                .foregroundColor(.secondary)
+                .foregroundColor(.primary)
                 .frame(width: 100, alignment: .leading)
             Text(value)
                 .font(.subheadline)

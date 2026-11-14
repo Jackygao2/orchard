@@ -213,6 +213,23 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testImageReferenceLabelContrast() throws {
+        let app = launchedApp()
+        app.typeKey("4", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["search-images"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Reference"].waitForExistence(timeout: 10))
+        var referenceIssues: [String] = []
+        try app.performAccessibilityAudit(for: .contrast) { issue in
+            if (issue.element?.value as? String) == "Reference" || issue.detailedDescription.contains("for Reference") {
+                referenceIssues.append(issue.compactDescription)
+            }
+            // The ticket records other contrast findings for separate investigation.
+            return true
+        }
+        XCTAssertTrue(referenceIssues.isEmpty, referenceIssues.joined(separator: ", "))
+    }
+
+    @MainActor
     func testToolbarRefreshAndCommandPalette() throws {
         let app = launchedApp()
         let status = app.descendants(matching: .any)["toolbar-runtime-status"]

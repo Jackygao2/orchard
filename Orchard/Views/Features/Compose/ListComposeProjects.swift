@@ -93,9 +93,9 @@ struct ComposeProjectsListView: View {
     /// nobody's fault.
     private var pluginBanner: some View {
         banner(
-            title: "container compose is not installed",
+            title: composePluginService.removedByRuntimeUpgrade ? "container compose was removed by a Runtime upgrade" : "container compose is not installed",
             detail: "Projects here work without it. The command in a terminal does not.",
-            action: "Install",
+            action: composePluginService.removedByRuntimeUpgrade ? "Reinstall" : "Install",
             isUpdate: false
         )
     }
@@ -110,19 +110,18 @@ struct ComposeProjectsListView: View {
         let consequence = "The terminal may not handle a file the way this window does."
         switch update {
         case .newerRelease(let latest):
-            return banner(
-                title: "container compose \(latest) is available",
-                detail: "\(installed) is installed. \(consequence)",
-                action: "Update",
-                isUpdate: true
-            )
+            return AnyView(HStack {
+                Text("container compose \(latest) is available. ContainerDesk installs its verified \(ComposePluginService.linkedVersion) release.")
+                Spacer()
+                Link("View releases", destination: ComposePluginVersion.pageURL(for: latest))
+            }.padding())
         case .olderThanOrchard:
-            return banner(
+            return AnyView(banner(
                 title: "container compose \(installed) is older than ContainerDesk's",
                 detail: consequence,
                 action: "Update",
                 isUpdate: true
-            )
+            ))
         }
     }
 

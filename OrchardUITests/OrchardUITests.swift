@@ -434,7 +434,7 @@ final class OrchardUITests: XCTestCase {
             restart: always
             user: "1000"
         """.write(to: directory.appendingPathComponent("compose.yaml"), atomically: true, encoding: .utf8)
-        let app = launchedApp(extraArguments: ["--uitest-compose-review", directory.path])
+        let app = launchedApp(extraArguments: ["--uitest-compose-review", directory.path, "--uitest-no-compose-plugin"])
         app.typeKey("3", modifierFlags: .command)
         let acknowledge = app.checkBoxes["compose-acknowledge"]
         XCTAssertTrue(acknowledge.waitForExistence(timeout: 20))
@@ -446,6 +446,7 @@ final class OrchardUITests: XCTestCase {
         acknowledge.click()
         XCTAssertTrue(confirm.isEnabled)
         app.buttons["Cancel"].click()
+        XCTAssertTrue(app.buttons["Install"].waitForExistence(timeout: 10))
     }
 
     @MainActor

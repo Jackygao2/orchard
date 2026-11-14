@@ -119,7 +119,9 @@ final class AppServices: ObservableObject {
         )
         self.composeService = composeService
         // Only ever informs: a missing CLI plugin changes nothing about what the window can do.
-        self.composePluginService = ComposePluginService(commandRunner: runner, containerBinaryPath: { settings.safeContainerBinaryPath() })
+        let composePluginService = ComposePluginService(commandRunner: runner, containerBinaryPath: { settings.safeContainerBinaryPath() }, defaults: defaults)
+        composePluginService.runtimeVersion = { [weak systemService] in systemService?.containerVersion }
+        self.composePluginService = composePluginService
         let containerInstallService = ContainerInstallService(commandRunner: runner)
         self.containerInstallService = containerInstallService
 

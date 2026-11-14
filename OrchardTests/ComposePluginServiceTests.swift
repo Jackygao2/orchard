@@ -208,6 +208,21 @@ struct ComposePluginUpdateLookupTests {
         return ComposePluginService(commandRunner: runner, session: session, containerBinaryPath: { "/usr/local/bin/container" })
     }
 
+    @Test("A mismatched download fails before unpacking or privilege elevation")
+    func rejectsTamperedArchive() async {
+        let body = """
+        {"tag_name":"0.9.0","assets":[{"name":"compose-0.9.0-macos-arm64.tar.gz","browser_download_url":"https://example.com/plugin.tar.gz"}]}
+        """
+        let runner = MockCommandRunner()
+        let service = ComposePluginService(commandRunner: runner,
+            session: ReleaseStubProtocol.session(status: 200, body: body),
+            downloadOverride: { _, destination in try Data("tampered".utf8).write(to: destination) })
+        await service.install()
+        if case .failed(let message) = service.state { #expect(message.contains("verification failed")) }
+        else { Issue.record("Expected verification failure") }
+        #expect(runner.calls.isEmpty)
+    }
+
     @Test("A published release is recorded and offered over 0.6.0")
     func recordsLatest() async {
         let body = """
@@ -234,4 +249,31 @@ struct ComposePluginUpdateLookupTests {
         #expect(service.state == .installed(version: "0.6.0"))
         #expect(service.update == .olderThanOrchard(ComposePluginService.linkedVersion))
     }
+}
+
+@Test("Pinned digest verification accepts only matching bytes")
+func composePluginDigest() {
+    let bytes = Data("abc".utf8)
+    #expect(ComposePluginService.verifies(bytes, expected: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"))
+    #expect(!ComposePluginService.verifies(Data("tampered".utf8), expected: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"))
+}
+
+@MainActor
+@Test("A Runtime upgrade after an installed plugin offers reinstall")
+func composePluginUpgradeRemoval() async throws {
+    let name = "compose-plugin-test-\(UUID().uuidString)"
+    let defaults = try #require(UserDefaults(suiteName: name))
+    defer { defaults.removePersistentDomain(forName: name) }
+    let runner = MockCommandRunner()
+    runner.runHandler = { _, _ in ProcessResult(exitCode: 0, stdout: "0.9.0", stderr: nil) }
+    let service = ComposePluginService(commandRunner: runner, containerBinaryPath: { "/usr/local/bin/container" }, defaults: defaults)
+    var runtime = "1.0.0"
+    service.runtimeVersion = { runtime }
+    await service.refresh()
+    runner.runHandler = { _, _ in ProcessResult(exitCode: 64, stdout: nil, stderr: homebrewMissing) }
+    await service.refresh()
+    #expect(!service.removedByRuntimeUpgrade)
+    runtime = "1.1.0"
+    await service.refresh()
+    #expect(service.removedByRuntimeUpgrade)
 }

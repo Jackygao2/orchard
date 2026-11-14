@@ -41,8 +41,8 @@ struct InstallComposePluginSheet: View {
                 .font(.title2.weight(.semibold))
             Text(
                 isUpdate
-                    ? "Fetches the latest release and replaces the installed plugin."
-                    : "Fetches the latest release and puts it where the container CLI looks."
+                    ? "Downloads and verifies the pinned release before replacing the plugin."
+                    : "Downloads and verifies the pinned release before installing the plugin."
             )
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -71,6 +71,7 @@ struct InstallComposePluginSheet: View {
                     .foregroundStyle(.orange)
                     .padding(.top, 4)
                     .fixedSize(horizontal: false, vertical: true)
+                Link("View plugin releases", destination: ComposePluginVersion.pageURL(for: ComposePluginService.linkedVersion))
             }
         }
         .padding()

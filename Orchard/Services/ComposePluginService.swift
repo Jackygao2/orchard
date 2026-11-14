@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 /// Whether the `container compose` CLI plugin is on this machine, and fetching it when it
 /// is not.
@@ -15,8 +16,7 @@ import Foundation
 ///
 /// The install is the one the project documents by hand: fetch the release tarball, unpack
 /// it, and put the two files it holds where the CLI looks. Fetching rather than bundling
-/// means the newest published plugin is installed whatever Orchard's own age, and that
-/// Orchard ships no copy of a binary it never runs.
+/// allows the pinned release to be verified without bundling a binary the app never runs.
 @MainActor
 final class ComposePluginService: ObservableObject {
     enum State: Equatable {
@@ -45,7 +45,7 @@ final class ComposePluginService: ObservableObject {
 
         var title: String {
             switch self {
-            case .findingRelease: return "Finding the latest release"
+            case .findingRelease: return "Finding the verified release"
             case .downloading: return "Downloading"
             case .unpacking: return "Unpacking"
             case .installing: return "Installing"
@@ -83,6 +83,28 @@ final class ComposePluginService: ObservableObject {
     /// shows. The package does not report its own version at runtime, so this is kept by hand
     /// and a test holds it to the pin in `Package.resolved`.
     static let linkedVersion = "0.9.0"
+    static let pinnedSHA256 = "e1763625d21eadd34dcc0753e3c12f3534ce61826bb180e8fb74dbbba8b0fd8d"
+    static let pinnedReleaseAPI = URL(string: "https://api.github.com/repos/andrew-waters/compose/releases/tags/0.9.0")!
+    @Published private(set) var removedByRuntimeUpgrade = false
+    private let defaults: UserDefaults
+    var runtimeVersion: @MainActor () -> String? = { nil }
+
+    nonisolated static func verifies(_ data: Data, expected: String) -> Bool {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() == expected.lowercased()
+    }
+
+    private func recordObservation() {
+        guard let version = runtimeVersion(), !version.isEmpty else { return }
+        let previousVersion = defaults.string(forKey: "composePlugin.lastRuntimeVersion")
+        let wasInstalled = defaults.bool(forKey: "composePlugin.wasInstalled")
+        if isInstalled {
+            defaults.set(true, forKey: "composePlugin.wasInstalled")
+            defaults.set(version, forKey: "composePlugin.lastRuntimeVersion")
+            removedByRuntimeUpgrade = false
+        } else if isMissing, wasInstalled, let previousVersion, previousVersion != version {
+            removedByRuntimeUpgrade = true
+        }
+    }
 
     /// Why the installed plugin is worth replacing.
     enum Update: Equatable {
@@ -116,14 +138,19 @@ final class ComposePluginService: ObservableObject {
     private let commandRunner: any CommandRunner
     private let fileManager: FileManager
     private let session: URLSession
+    private let downloadOverride: ((URL, URL) async throws -> Void)?
     private let containerBinaryPath: @MainActor () -> String
 
     init(
         commandRunner: any CommandRunner = SystemCommandRunner(),
         fileManager: FileManager = .default,
         session: URLSession = .shared,
-        containerBinaryPath: @escaping @MainActor () -> String = { "/usr/local/bin/container" }
+        containerBinaryPath: @escaping @MainActor () -> String = { "/usr/local/bin/container" },
+        defaults: UserDefaults = .standard,
+        downloadOverride: ((URL, URL) async throws -> Void)? = nil
     ) {
+        self.defaults = defaults
+        self.downloadOverride = downloadOverride
         self.commandRunner = commandRunner
         self.fileManager = fileManager
         self.session = session
@@ -171,6 +198,7 @@ final class ComposePluginService: ObservableObject {
     /// Called when the Compose tab is opened rather than polled: it only changes when someone
     /// installs it or an upgrade leaves it behind, and both happen between visits to this tab.
     func refresh() async {
+        defer { recordObservation() }
         // The CLI only names its plugin directories when the plugin is missing, so a working
         // plugin would leave the /usr/local defaults in place and an update would land where a
         // Homebrew CLI never looks. Work them out from where the binary really lives instead.
@@ -317,6 +345,7 @@ final class ComposePluginService: ObservableObject {
         /// The release exists but publishes nothing for this architecture.
         case noAsset
         case badResponse
+        case integrity
     }
 
     /// Start an install, unless one is already running.
@@ -354,15 +383,16 @@ final class ComposePluginService: ObservableObject {
 
         do {
             state = .working(.findingRelease)
-            let release = try await latestRelease()
+            let release = try await latestRelease(api: Self.pinnedReleaseAPI)
+            guard ComposePluginVersion(release.tag) == ComposePluginVersion(Self.linkedVersion) else { throw InstallError.integrity }
             targetVersion = release.tag
-            latestVersion = release.tag
             try Task.checkCancellation()
 
             state = .working(.downloading)
             try fileManager.createDirectory(at: scratch, withIntermediateDirectories: true)
             let tarball = scratch.appendingPathComponent("compose.tar.gz")
             try await download(release.assetURL, to: tarball)
+            guard Self.verifies(try Data(contentsOf: tarball), expected: Self.pinnedSHA256) else { throw InstallError.integrity }
 
             try Task.checkCancellation()
             state = .working(.unpacking)
@@ -379,6 +409,10 @@ final class ComposePluginService: ObservableObject {
             }
         } catch is CancellationError {
             try? fileManager.removeItem(at: scratch)
+            return
+        } catch InstallError.integrity {
+            try? fileManager.removeItem(at: scratch)
+            state = .failed("Plugin verification failed. Nothing was installed; retry or install manually from the release page.")
             return
         } catch InstallError.noAsset {
             try? fileManager.removeItem(at: scratch)
@@ -415,8 +449,8 @@ final class ComposePluginService: ObservableObject {
     }
 
     /// The newest published release, and the asset built for this machine.
-    private func latestRelease() async throws -> Release {
-        var request = URLRequest(url: Self.releaseAPI)
+    private func latestRelease(api: URL = ComposePluginService.releaseAPI) async throws -> Release {
+        var request = URLRequest(url: api)
         // GitHub refuses API requests that do not identify themselves.
         request.setValue("ContainerDesk", forHTTPHeaderField: "User-Agent")
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
@@ -454,6 +488,7 @@ final class ComposePluginService: ObservableObject {
     }
 
     private func download(_ url: URL, to destination: URL) async throws {
+        if let downloadOverride { try await downloadOverride(url, destination); return }
         var request = URLRequest(url: url)
         request.setValue("ContainerDesk", forHTTPHeaderField: "User-Agent")
 
@@ -489,8 +524,8 @@ final class ComposePluginService: ObservableObject {
     /// Copy the two files into the plugin directory, behind one admin prompt when the
     /// directory needs it.
     ///
-    /// Returns false when the prompt was dismissed. `install` is used rather than `cp` because
-    /// it makes the directories and sets the modes in one go, and the layout has to be exact:
+    /// Returns false when the prompt was dismissed. Ditto preserves quarantine and extended
+    /// attributes; the layout and modes have to be exact:
     /// a plugin is a directory named after its binary, holding `config.toml` and `bin/<name>`.
     /// Miss either and the CLI reports only "Plugin not found", with nothing to say which half
     /// is wrong. Writing the two files in place also means nothing is removed as root.
@@ -498,12 +533,13 @@ final class ComposePluginService: ObservableObject {
         let dir = installPath
         let binary = unpacked.appendingPathComponent("bin/compose").path
         let config = unpacked.appendingPathComponent("config.toml").path
+        let destinationBinary = SystemCommandRunner.shellQuote(dir + "/bin/compose")
+        let destinationConfig = SystemCommandRunner.shellQuote(dir + "/config.toml")
         let script = """
             /usr/bin/install -d \(SystemCommandRunner.shellQuote(dir + "/bin")) && \
-            /usr/bin/install -m 0755 \(SystemCommandRunner.shellQuote(binary)) \
-            \(SystemCommandRunner.shellQuote(dir + "/bin/compose")) && \
-            /usr/bin/install -m 0644 \(SystemCommandRunner.shellQuote(config)) \
-            \(SystemCommandRunner.shellQuote(dir + "/config.toml"))
+            /usr/bin/ditto --rsrc --extattr --qtn \(SystemCommandRunner.shellQuote(binary)) \(destinationBinary) && \
+            /usr/bin/ditto --rsrc --extattr --qtn \(SystemCommandRunner.shellQuote(config)) \(destinationConfig) && \
+            /bin/chmod 0755 \(destinationBinary) && /bin/chmod 0644 \(destinationConfig)
             """
 
         let result = Self.needsAdministrator(toWrite: dir, fileManager: fileManager)

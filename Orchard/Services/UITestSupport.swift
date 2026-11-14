@@ -235,7 +235,10 @@ struct UITestModelServerEngine: ModelServerEngine {
 /// degrade quietly rather than shelling out during UI tests.
 struct UITestCommandRunner: CommandRunner {
     func run(program: String, arguments: [String]) async throws -> ProcessResult {
-        ProcessResult(exitCode: 0, stdout: "", stderr: nil)
+        if ProcessInfo.processInfo.arguments.contains("--uitest-no-compose-plugin"), arguments == ["compose", "--version"] {
+            return ProcessResult(exitCode: 1, stdout: nil, stderr: "unknown command 'compose'")
+        }
+        return ProcessResult(exitCode: 0, stdout: "", stderr: nil)
     }
     func runWithSudo(program: String, arguments: [String]) async throws -> ProcessResult {
         ProcessResult(exitCode: 0, stdout: "", stderr: nil)

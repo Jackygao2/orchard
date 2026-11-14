@@ -196,6 +196,20 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testImageDetailsRemainReadableInNarrowWindow() throws {
+        let app = launchedApp()
+        app.typeKey("4", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["search-images"].waitForExistence(timeout: 10))
+        let window = app.windows.firstMatch
+        let corner = window.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 1))
+        let narrower = window.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 1))
+        corner.press(forDuration: 0.2, thenDragTo: narrower)
+        let reference = app.staticTexts.matching(NSPredicate(format: "value CONTAINS %@", "docker.io/library/uitest-nginx")).firstMatch
+        XCTAssertTrue(reference.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(reference.frame.width, 20, "Image reference should not collapse to a one-point column")
+    }
+
+    @MainActor
     func testToolbarRefreshAndCommandPalette() throws {
         let app = launchedApp()
         let status = app.descendants(matching: .any)["toolbar-runtime-status"]

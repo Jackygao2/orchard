@@ -601,10 +601,18 @@ struct ContainerImageDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    HStack(alignment: .top, spacing: 20) {
-                        imageOverviewSection()
-                        Divider()
-                        imageTechnicalSection()
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: 20) {
+                            imageOverviewSection()
+                            Divider()
+                            imageTechnicalSection()
+                        }
+                        .fixedSize(horizontal: true, vertical: false)
+                        VStack(alignment: .leading, spacing: 20) {
+                            imageOverviewSection()
+                            Divider()
+                            imageTechnicalSection()
+                        }
                     }
 
                     // Image config from inspection

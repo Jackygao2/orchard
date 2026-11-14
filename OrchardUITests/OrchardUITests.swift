@@ -207,6 +207,9 @@ final class OrchardUITests: XCTestCase {
         let reference = app.staticTexts.matching(NSPredicate(format: "value CONTAINS %@", "docker.io/library/uitest-nginx")).firstMatch
         XCTAssertTrue(reference.waitForExistence(timeout: 10))
         XCTAssertGreaterThan(reference.frame.width, 20, "Image reference should not collapse to a one-point column")
+        let hostname = app.staticTexts["Hostname"].firstMatch
+        XCTAssertTrue(hostname.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(hostname.frame.width, 20, "The container table should retain readable columns")
     }
 
     @MainActor

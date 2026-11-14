@@ -776,12 +776,15 @@ struct ContainerImageDetailView: View {
                 .font(.headline)
                 .foregroundColor(.primary)
 
-            ContainerTable(
-                containers: containersUsingImage,
-                selectedTab: $selectedTab,
-                selectedContainer: $selectedContainer,
-                emptyStateMessage: "No containers are currently using this image"
-            )
+            ScrollView(.horizontal) {
+                ContainerTable(
+                    containers: containersUsingImage,
+                    selectedTab: $selectedTab,
+                    selectedContainer: $selectedContainer,
+                    emptyStateMessage: "No containers are currently using this image"
+                )
+                .frame(minWidth: containersUsingImage.isEmpty ? 0 : 600, alignment: .leading)
+            }
         }
     }
 

@@ -636,4 +636,14 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(app.buttons["onboarding-begin"].waitForExistence(timeout: 10))
     }
 
+    @MainActor
+    func testNoInAppUpdateMenu() throws {
+        let app = launchedApp()
+        let menu = app.menuBars.menuBarItems["ContainerDesk"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 15))
+        menu.click()
+        XCTAssertFalse(app.menuItems["Check for Updates…"].exists)
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+    }
+
 }

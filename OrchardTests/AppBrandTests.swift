@@ -25,3 +25,12 @@ func productCredits() {
     #expect(AppBrand.orchardCredit.contains("Andrew Waters"))
     #expect(AppBrand.orchardCredit.contains("MIT License"))
 }
+
+@MainActor
+@Test("The disabled updater never offers an update check")
+func disabledUpdater() {
+    let updater = UpdaterService()
+    #expect(!updater.canCheckForUpdates)
+    updater.checkForUpdates()
+    #expect(!updater.canCheckForUpdates)
+}

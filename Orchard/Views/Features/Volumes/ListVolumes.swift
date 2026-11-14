@@ -173,10 +173,7 @@ struct VolumeDeleteButton: View {
     private func confirmDeletion() {
         let alert = NSAlert()
         alert.messageText = volumes.count > 1 ? "Delete \(volumes.count) Volumes?" : "Delete \(volumes[0].name)?"
-        let names = volumes.map(\.name).joined(separator: ", ")
-        alert.informativeText = volumes.count > 1
-            ? "This deletes \(names). What's in them can't be got back."
-            : "What's in the volume can't be got back."
+        alert.informativeText = VolumeDeletion.confirmation(volumes)
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Delete")
         alert.addButton(withTitle: "Cancel")
@@ -195,5 +192,15 @@ enum VolumeFormat {
         case .failed: return "Size unknown"
         case .measuring, nil: return "Measuring..."
         }
+    }
+}
+
+/// Identifies project data in every destructive volume confirmation.
+enum VolumeDeletion {
+    static func confirmation(_ volumes: [ContainerVolume]) -> String {
+        let descriptions = volumes.map { volume in
+            VolumeUsage.composeProject(of: volume).map { "\(volume.name) (Compose project: \($0))" } ?? volume.name
+        }
+        return "This permanently deletes the data in: " + descriptions.joined(separator: ", ") + "."
     }
 }

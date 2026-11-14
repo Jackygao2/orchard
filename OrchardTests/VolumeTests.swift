@@ -234,3 +234,17 @@ func deepLinkVolume() {
     #expect(URL(string: "containerdesk://volume/pgdata").flatMap(DeepLink.parse) == .volume("pgdata"))
     #expect(URL(string: "containerdesk://volumes").flatMap(DeepLink.parse) == .tab(.volumes))
 }
+
+@Test("Volume deletion identifies named and anonymous Compose ownership")
+func volumeDeletionOwnership() {
+    let named = volume("shop_db", labels: [ProjectIdentity.projectLabel: "shop"])
+    let anonymous = volume("shop_cache", anonymous: true, labels: [ProjectIdentity.projectLabel: "shop"])
+    let plain = volume("scratch", anonymous: true)
+    #expect(VolumeUsage.composeProject(of: anonymous) == "shop")
+    #expect(VolumeUsage.composeProject(of: plain) == nil)
+    let message = VolumeDeletion.confirmation([named, anonymous, plain])
+    #expect(message.contains("shop_db (Compose project: shop)"))
+    #expect(message.contains("shop_cache (Compose project: shop)"))
+    #expect(message.contains("scratch"))
+    #expect(message.contains("permanently"))
+}

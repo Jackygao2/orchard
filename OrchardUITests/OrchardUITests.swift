@@ -497,4 +497,20 @@ final class OrchardUITests: XCTestCase {
         cancel.click()
     }
 
+    @MainActor
+    func testComposeVolumeDeleteCancellation() throws {
+        let app = launchedApp(extraArguments: ["--uitest-compose-volume"])
+        app.typeKey("5", modifierFlags: .command)
+        let volume = app.staticTexts.matching(identifier: "uitest-plan_data").firstMatch
+        XCTAssertTrue(volume.waitForExistence(timeout: 20))
+        volume.click()
+        let delete = app.buttons["Delete..."]
+        XCTAssertTrue(delete.waitForExistence(timeout: 10))
+        delete.click()
+        let cancel = app.buttons["Cancel"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10))
+        cancel.click()
+        XCTAssertTrue(volume.exists)
+    }
+
 }

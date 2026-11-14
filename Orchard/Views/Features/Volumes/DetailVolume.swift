@@ -81,6 +81,9 @@ struct VolumeDetailView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 CopyableInfoRow(label: "Name", value: volume.name)
+                if let project = VolumeUsage.composeProject(of: volume) {
+                    InfoRow(label: "Compose project", value: project)
+                }
                 InfoRow(label: "Size on Disk", value: VolumeFormat.size(volumeService.sizes[volume.name]))
                 if let capacity = volume.capacityBytes {
                     InfoRow(label: "Capacity", value: ByteFormat.string(Int64(clamping: capacity)))

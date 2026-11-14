@@ -96,7 +96,13 @@ struct UITestBackend: ContainerBackend {
         workingDirectory: String?,
         user: String?,
         onOutput: @escaping @Sendable (String) -> Void
-    ) async throws -> Int32 { 0 }
+    ) async throws -> Int32 {
+        if ProcessInfo.processInfo.arguments.contains("--uitest-run-command") {
+            onOutput("fixture command output")
+            return 3
+        }
+        return 0
+    }
     func containerLogs(id: String) async throws -> [FileHandle] {
         guard ProcessInfo.processInfo.arguments.contains("--uitest-logs") else { return [] }
         let pipe = Pipe()

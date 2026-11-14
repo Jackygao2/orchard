@@ -564,4 +564,22 @@ final class OrchardUITests: XCTestCase {
         XCTAssertEqual(pasteboard.string(forType: .string), "fixture second line")
     }
 
+    @MainActor
+    func testRunCommandInRunningContainer() throws {
+        let app = launchedApp(extraArguments: ["--uitest-run-command"])
+        openContainersTab(app)
+        app.staticTexts["uitest-web"].firstMatch.click()
+        let open = app.buttons["open-run-command"]
+        XCTAssertTrue(open.waitForExistence(timeout: 10))
+        open.click()
+        let input = app.textFields["run-command-input"]
+        XCTAssertTrue(input.waitForExistence(timeout: 10))
+        input.click()
+        input.typeText("echo 'hello world'")
+        app.buttons["run-command-submit"].click()
+        XCTAssertTrue(app.staticTexts["Exited with status 3."].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["run-command-output"].waitForExistence(timeout: 10))
+        app.buttons["Close"].click()
+    }
+
 }

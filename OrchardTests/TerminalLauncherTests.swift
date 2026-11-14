@@ -89,3 +89,22 @@ func terminalAppleScriptLineBreaks() {
     #expect(literal == "\"one\" & character id 10 & \"two\" & character id 13 & \"three\"")
     #expect(!SystemCommandRunner.adminScript(program: "/bin/echo", arguments: ["a\nb"]).contains("\n"))
 }
+
+@MainActor
+@Test("First terminal use explains automation and offers a safe copy path")
+func terminalAutomationExplanation() {
+    let defaults = ephemeralDefaults()
+    let settings = SettingsStore(alertCenter: AlertCenter(), defaults: defaults, secrets: InMemorySecretsStore())
+    var prompts = 0
+    var copied = ""
+    var launched = 0
+    let launcher = TerminalLauncher(settings: settings, alertCenter: AlertCenter(), defaults: defaults,
+        confirmationOverride: { _ in prompts += 1; return prompts == 1 ? .alertSecondButtonReturn : .alertFirstButtonReturn },
+        copyOverride: { copied = $0 }, launchCommandOverride: { _ in launched += 1 })
+    launcher.openTerminal(for: "name;touch /tmp/nope")
+    #expect(prompts == 1 && launched == 0)
+    #expect(copied.contains("'name;touch /tmp/nope'"))
+    launcher.openTerminal(for: "web")
+    launcher.openTerminal(for: "web")
+    #expect(prompts == 2 && launched == 2)
+}

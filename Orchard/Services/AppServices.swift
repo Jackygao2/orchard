@@ -81,7 +81,7 @@ final class AppServices: ObservableObject {
         self.settings = settings
         self.terminalLauncher = TerminalLauncher(settings: settings, alertCenter: alertCenter, terminalOverride: simulateTerminal ? { id in
             alertCenter.error("UI test: terminal requested for \(id)")
-        } : nil)
+        } : nil, defaults: defaults)
         let builderService = BuilderService(runner: runner, settings: settings, alertCenter: alertCenter)
         self.builderService = builderService
         let clusterService = ClusterService(runner: runner, settings: settings, alertCenter: alertCenter, defaults: defaults)

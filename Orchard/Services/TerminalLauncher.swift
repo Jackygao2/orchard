@@ -8,8 +8,17 @@ final class TerminalLauncher: ObservableObject {
     private let settings: SettingsStore
     private let alertCenter: AlertCenter
     private let terminalOverride: ((String) -> Void)?
+    private let defaults: UserDefaults
+    private let confirmationOverride: ((String) -> NSApplication.ModalResponse)?
+    private let copyOverride: ((String) -> Void)?
+    private let launchCommandOverride: ((String) -> Void)?
+    private let permissionExplanationKey = "ContainerDeskTerminalAutomationExplained"
 
-    init(settings: SettingsStore, alertCenter: AlertCenter, terminalOverride: ((String) -> Void)? = nil) {
+    init(settings: SettingsStore, alertCenter: AlertCenter, terminalOverride: ((String) -> Void)? = nil, defaults: UserDefaults = .standard, confirmationOverride: ((String) -> NSApplication.ModalResponse)? = nil, copyOverride: ((String) -> Void)? = nil, launchCommandOverride: ((String) -> Void)? = nil) {
+        self.defaults = defaults
+        self.confirmationOverride = confirmationOverride
+        self.copyOverride = copyOverride
+        self.launchCommandOverride = launchCommandOverride
         self.settings = settings
         self.alertCenter = alertCenter
         self.terminalOverride = terminalOverride
@@ -33,6 +42,8 @@ final class TerminalLauncher: ObservableObject {
             return
         }
 
+        guard explainAutomationIfNeeded(command: fullCommand) else { return }
+        if let launchCommandOverride { launchCommandOverride(fullCommand); return }
         Log.ui.debug("Opening terminal — terminal: \(self.settings.preferredTerminal.displayName)")
 
         switch settings.preferredTerminal {
@@ -90,6 +101,7 @@ final class TerminalLauncher: ObservableObject {
     /// Open the user's preferred terminal running an arbitrary shell command (e.g. a
     /// kubectl session preconfigured for a cluster).
     func openTerminal(runningCommand command: String) {
+        guard explainAutomationIfNeeded(command: command) else { return }
         Log.ui.debug("Opening terminal command — terminal: \(self.settings.preferredTerminal.displayName)")
 
         switch settings.preferredTerminal {
@@ -114,7 +126,7 @@ final class TerminalLauncher: ObservableObject {
         end tell
         """
 
-        executeAppleScript(script)
+        executeAppleScript(script, command: command)
     }
 
     private func openInITerm2(command: String) {
@@ -130,7 +142,7 @@ final class TerminalLauncher: ObservableObject {
         end tell
         """
 
-        executeAppleScript(script)
+        executeAppleScript(script, command: command)
     }
 
     /// Ghostty ships a scripting dictionary (1.3 and later), so it is driven the same way
@@ -147,7 +159,7 @@ final class TerminalLauncher: ObservableObject {
     private func openInGhostty(command fullCommand: String) {
         guard NSWorkspace.shared.urlForApplication(withBundleIdentifier: TerminalApp.ghostty.bundleIdentifier) != nil else {
             Log.ui.error("❌ Ghostty application not found")
-            alertCenter.error("Ghostty application not found")
+            presentFailure("Ghostty was not found. Install it or choose another terminal in Settings.", command: fullCommand)
             return
         }
 
@@ -168,7 +180,7 @@ final class TerminalLauncher: ObservableObject {
         end tell
         """
 
-        executeAppleScript(script)
+        executeAppleScript(script, command: fullCommand)
     }
 
     /// The system-wide "Prefer tabs when opening documents" setting, from System Settings ›
@@ -177,17 +189,52 @@ final class TerminalLauncher: ObservableObject {
         UserDefaults.standard.string(forKey: "AppleWindowTabbingMode") == "always"
     }
 
-    private func executeAppleScript(_ script: String) {
+    private func explainAutomationIfNeeded(command: String) -> Bool {
+        guard !defaults.bool(forKey: permissionExplanationKey) else { return true }
+        let alert = NSAlert()
+        alert.messageText = "Allow terminal automation"
+        alert.informativeText = "macOS may ask whether ContainerDesk can control your terminal. Allow it to open the container shell, or copy the command and run it yourself. You can change access in System Settings → Privacy & Security → Automation."
+        alert.addButton(withTitle: "Open Terminal")
+        alert.addButton(withTitle: "Copy Command")
+        alert.addButton(withTitle: "Cancel")
+        let response = confirmationOverride?(command) ?? alert.runModal()
+        switch response {
+        case .alertFirstButtonReturn:
+            defaults.set(true, forKey: permissionExplanationKey)
+            return true
+        case .alertSecondButtonReturn:
+            copyCommand(command)
+            return false
+        default: return false
+        }
+    }
+
+    private func copyCommand(_ command: String) {
+        if let copyOverride { copyOverride(command); return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(command, forType: .string)
+    }
+
+    private func executeAppleScript(_ script: String, command: String) {
         let appleScript = NSAppleScript(source: script)
         var error: NSDictionary?
         let result = appleScript?.executeAndReturnError(&error)
 
         if let error = error {
             Log.ui.error("❌ AppleScript execution failed")
-            alertCenter.error(Self.userMessage(for: error))
+            presentFailure(Self.userMessage(for: error), command: command)
         } else if result != nil {
             Log.ui.debug("✓ AppleScript executed")
         }
+    }
+
+    private func presentFailure(_ message: String, command: String) {
+        let alert = NSAlert()
+        alert.messageText = "Could not open the terminal"
+        alert.informativeText = message
+        alert.addButton(withTitle: "Copy Command")
+        alert.addButton(withTitle: "Close")
+        if alert.runModal() == .alertFirstButtonReturn { copyCommand(command) }
     }
 
     /// Translates an `NSAppleScript` error dictionary into something actionable.

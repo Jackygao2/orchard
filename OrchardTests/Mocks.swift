@@ -120,6 +120,7 @@ final class MockContainerBackend: ContainerBackend, @unchecked Sendable {
     private var _pingHandler: (@Sendable () async throws -> SystemHealthInfo)?
     private var _bootstrapAndStartHandler: (@Sendable (Int) throws -> Void)?
     private var _runProcessHandler: (@Sendable (MockProcessRun, (String) -> Void) throws -> Int32)?
+    private var _runProcessAsyncHandler: (@Sendable (MockProcessRun, @escaping @Sendable (String) -> Void) async throws -> Int32)?
     private var _daemonDNSDomainHandler: (@Sendable () throws -> String?)?
     private var _containerDNSDefaults = ContainerDNSDefaults()
     private var _ranProcesses: [MockProcessRun] = []
@@ -288,6 +289,10 @@ final class MockContainerBackend: ContainerBackend, @unchecked Sendable {
         get { lock.withLock { _daemonDNSDomainHandler } }
         set { lock.withLock { _daemonDNSDomainHandler = newValue } }
     }
+    var runProcessAsyncHandler: (@Sendable (MockProcessRun, @escaping @Sendable (String) -> Void) async throws -> Int32)? {
+        get { lock.withLock { _runProcessAsyncHandler } }
+        set { lock.withLock { _runProcessAsyncHandler = newValue } }
+    }
     var runProcessHandler: (@Sendable (MockProcessRun, (String) -> Void) throws -> Int32)? {
         get { lock.withLock { _runProcessHandler } }
         set { lock.withLock { _runProcessHandler = newValue } }
@@ -409,6 +414,7 @@ final class MockContainerBackend: ContainerBackend, @unchecked Sendable {
             user: user
         )
         lock.withLock { _ranProcesses.append(run) }
+        if let handler = runProcessAsyncHandler { return try await handler(run, onOutput) }
         guard let handler = runProcessHandler else { return 0 }
         return try handler(run, onOutput)
     }

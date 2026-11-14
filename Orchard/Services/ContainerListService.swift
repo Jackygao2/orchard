@@ -107,6 +107,8 @@ final class ContainerListService: ObservableObject {
         old == new
     }
 
+    func makeCommandRunner() -> RunCommandModel { RunCommandModel(backend: backend) }
+
     func invalidatePolls() {
         loadGeneration &+= 1
         appliedGeneration = loadGeneration

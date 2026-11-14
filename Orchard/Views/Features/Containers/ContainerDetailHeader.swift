@@ -11,6 +11,7 @@ struct ContainerDetailHeader: View {
     @EnvironmentObject var systemService: SystemService
     @Environment(\.openWindow) private var openWindow
     @State private var showEditConfiguration = false
+    @State private var showRunCommand = false
     @State private var showDeleteConfirmation = false
     @State private var isDeleting = false
     @State private var isStarting = false
@@ -266,6 +267,8 @@ struct ContainerDetailHeader: View {
 
                     // Terminal buttons - only when running and not stopping
                     if !isStopping {
+                        Button("Run Command…") { showRunCommand = true }
+                            .accessibilityIdentifier("open-run-command")
                         Button("Terminal (sh)") {
                             terminalLauncher.openTerminal(for: container.configuration.id)
                         }
@@ -400,6 +403,9 @@ struct ContainerDetailHeader: View {
         }
         .sheet(item: $commitTarget) { target in
             CommitContainerView(containerId: target.id)
+        }
+        .sheet(isPresented: $showRunCommand) {
+            RunCommandView(containerID: container.configuration.id, model: containerListService.makeCommandRunner())
         }
         .sheet(isPresented: $showEditConfiguration) {
             EditContainerView(container: container)

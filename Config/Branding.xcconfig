@@ -1,3 +1,10 @@
 CD_PRODUCT_NAME = ContainerDesk
 CD_BUNDLE_IDENTIFIER = local.containerdesk
 CD_URL_SCHEME = containerdesk
+
+// Release defaults to an unsigned development build. Local signing overrides are ignored by git.
+CD_SIGNING_ALLOWED = NO
+CD_SIGNING_STYLE = Manual
+CD_SIGNING_IDENTITY = -
+CD_SIGNING_TEAM =
+#include? "Signing.xcconfig"

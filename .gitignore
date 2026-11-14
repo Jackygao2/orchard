@@ -15,3 +15,6 @@ badge/
 .omo/
 UITestResults/
 scripts/.build/
+
+# Local signing settings (copy Config/Signing.example.xcconfig)
+Config/Signing.xcconfig

@@ -1,0 +1,6 @@
+// Copy to Signing.xcconfig and set local values; never commit the private file.
+// A valid Developer ID Application identity must already be in your keychain.
+CD_SIGNING_ALLOWED = YES
+CD_SIGNING_STYLE = Manual
+CD_SIGNING_IDENTITY = Developer ID Application
+CD_SIGNING_TEAM = YOUR_TEAM_ID

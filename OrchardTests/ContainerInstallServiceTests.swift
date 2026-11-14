@@ -191,3 +191,14 @@ func containerInstallOffline() async {
     let scratch = download.destination?.deletingLastPathComponent().path ?? ""
     #expect(!FileManager.default.fileExists(atPath: scratch))
 }
+
+@MainActor
+@Test("Onboarding installs the verified package without starting the Runtime")
+func containerInstallWithoutStart() async {
+    let runner = fakeRunner(signature: signed)
+    let (service, started) = makeInstaller(runner: runner)
+    #expect(await service.installWithoutStarting())
+    #expect(!started())
+    #expect(runner.calls.count == 2)
+    #expect(service.state == .idle)
+}

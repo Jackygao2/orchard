@@ -84,6 +84,7 @@ final class ContainerInstallService: ObservableObject {
     private let fileManager: FileManager
     private let download: Download
     private var installTask: Task<Void, Never>?
+    private var standaloneInstallInFlight = false
 
     init(
         commandRunner: any CommandRunner = SystemCommandRunner(),
@@ -119,7 +120,7 @@ final class ContainerInstallService: ObservableObject {
     /// can still be waiting on `pkgutil`, and a new install started in that gap would have
     /// its handle cleared by the old one, letting a third start alongside it.
     func beginInstall() {
-        guard installTask == nil else { return }
+        guard installTask == nil, !standaloneInstallInFlight else { return }
         installTask = Task { [weak self] in
             await self?.install()
             self?.installTask = nil
@@ -172,6 +173,18 @@ final class ContainerInstallService: ObservableObject {
         // to the containers when it did, and to the Start screen, with its diagnostics,
         // when it did not.
         state = .idle
+    }
+
+    /// Install the package without starting the Runtime. Onboarding asks before the first start.
+    func installWithoutStarting() async -> Bool {
+        guard installTask == nil, !standaloneInstallInFlight else { return false }
+        standaloneInstallInFlight = true
+        defer { standaloneInstallInFlight = false }
+        let scratch = fileManager.temporaryDirectory.appendingPathComponent("containerdesk-install-\(UUID().uuidString)")
+        let installed = await installPackage(in: scratch)
+        try? fileManager.removeItem(at: scratch)
+        if installed || Task.isCancelled { state = .idle }
+        return installed
     }
 
     /// Everything up to and including `installer`. True when the package is installed;

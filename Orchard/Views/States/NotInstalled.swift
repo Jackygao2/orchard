@@ -7,6 +7,7 @@ import SwiftUI
 struct NotInstalledView: View {
     @EnvironmentObject var systemService: SystemService
     @EnvironmentObject var containerInstallService: ContainerInstallService
+    @EnvironmentObject var onboarding: OnboardingCoordinator
     @State private var showManual = false
 
     var body: some View {
@@ -27,6 +28,7 @@ struct NotInstalledView: View {
 
             action
 
+            Button("Run Setup Again") { onboarding.runSetupAgain() }
             manual
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -55,7 +57,7 @@ struct NotInstalledView: View {
 
                 HStack(spacing: 16) {
                     Button {
-                        containerInstallService.beginInstall()
+                        onboarding.runSetupAgain()
                     } label: {
                         Label(
                             containerInstallService.failureMessage == nil

@@ -6,6 +6,7 @@ struct NotRunningView: View {
     @EnvironmentObject var imageService: ImageService
     @EnvironmentObject var builderService: BuilderService
     @EnvironmentObject var systemService: SystemService
+    @EnvironmentObject var onboarding: OnboardingCoordinator
     @State private var showDiagnostics = false
 
     var body: some View {
@@ -14,6 +15,7 @@ struct NotRunningView: View {
                 isLoading: systemService.isSystemLoading,
                 action: {
                     Task { @MainActor in
+                        onboarding.recordStartApproval()
                         await systemService.startSystem()
                     }
                 }
@@ -23,6 +25,7 @@ struct NotRunningView: View {
                 .font(.title2)
                 .fontWeight(.medium)
 
+            Button("Run Setup Again") { onboarding.runSetupAgain() }
             if let error = systemService.systemStatusError {
                 DisclosureGroup(isExpanded: $showDiagnostics) {
                     VStack(alignment: .leading, spacing: 8) {

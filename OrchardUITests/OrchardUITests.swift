@@ -582,4 +582,41 @@ final class OrchardUITests: XCTestCase {
         app.buttons["Close"].click()
     }
 
+    @MainActor
+    func testOnboardingMissingRuntimeAndSkipPlugin() throws {
+        let app = launchedApp(extraArguments: ["--uitest-onboarding", "missing"])
+        app.buttons["onboarding-begin"].click()
+        let install = app.buttons["onboarding-install"]
+        XCTAssertTrue(install.waitForExistence(timeout: 10))
+        install.click()
+        let start = app.buttons["onboarding-start"]
+        XCTAssertTrue(start.waitForExistence(timeout: 10))
+        start.click()
+        let skip = app.buttons["onboarding-skip-plugin"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 10))
+        skip.click()
+        app.buttons["onboarding-finish"].click()
+        XCTAssertTrue(app.descendants(matching: .any)["overview-content"].waitForExistence(timeout: 20))
+    }
+
+    @MainActor
+    func testOnboardingBlocksDifferentMajor() throws {
+        let app = launchedApp(extraArguments: ["--uitest-onboarding", "incompatible"])
+        app.buttons["onboarding-begin"].click()
+        XCTAssertTrue(app.staticTexts["Runtime version not supported"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["onboarding-start"].exists)
+    }
+
+    @MainActor
+    func testOnboardingVersionWarningsAndStoppedRuntime() throws {
+        for (seed, expected) in [("stopped", "onboarding-start"), ("older", "onboarding-continue-version"), ("newer", "onboarding-continue-version")] {
+            let app = launchedApp(extraArguments: ["--uitest-onboarding", seed])
+            let begin = app.buttons["onboarding-begin"]
+            XCTAssertTrue(begin.waitForExistence(timeout: 10))
+            begin.click()
+            XCTAssertTrue(app.buttons[expected].waitForExistence(timeout: 10), "Missing state for \(seed)")
+            app.terminate()
+        }
+    }
+
 }

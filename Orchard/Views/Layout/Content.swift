@@ -4,6 +4,7 @@ import AppKit
 struct ContentView: View {
     @EnvironmentObject var systemService: SystemService
     @EnvironmentObject var containerInstallService: ContainerInstallService
+    @EnvironmentObject var onboarding: OnboardingCoordinator
     @EnvironmentObject var containerListService: ContainerListService
     @EnvironmentObject var composeService: ComposeService
     @EnvironmentObject var imageService: ImageService
@@ -60,6 +61,7 @@ struct ContentView: View {
     @State private var showImageSearch: Bool = false
     @State private var showBuildImage: Bool = false
     @State private var showRunContainerSheet: Bool = false
+    @State private var showOnboardingNginx = false
     @State private var showAddDNSDomainSheet: Bool = false
     @State private var showAddNetworkSheet: Bool = false
     @State private var showAddMachineSheet: Bool = false
@@ -89,7 +91,9 @@ struct ContentView: View {
             // Held through the whole install, not just until the binary lands: the status
             // turns to stopped while `installer` and the first start are still running, and
             // the Start screen would offer a start without the kernel the install fetches.
-            if systemService.systemStatus == .notInstalled || containerInstallService.currentStep != nil {
+            if onboarding.isPresented {
+                OnboardingView()
+            } else if systemService.systemStatus == .notInstalled || containerInstallService.currentStep != nil {
                 NotInstalledView()
             } else if systemService.systemStatus == .stopped {
                 NotRunningView()
@@ -515,6 +519,7 @@ struct ContentView: View {
                 )
             }
         }
+        .sheet(isPresented: $showOnboardingNginx) { RunContainerView(imageName: "nginx:alpine") }
         .sheet(item: $commitTarget) { target in
             CommitContainerView(containerId: target.id)
         }
@@ -565,6 +570,7 @@ struct ContentView: View {
         }
 
         .task {
+            guard !onboarding.isPresented else { return }
             startInitialLoad()
             startRefreshTimer()
         }
@@ -574,6 +580,19 @@ struct ContentView: View {
         // `container system start` was never noticed (#100).
         .onDisappear {
             stopRefreshTimer()
+        }
+        .onChange(of: onboarding.isPresented) { _, presented in
+            if presented { stopRefreshTimer(); initialLoadTask?.cancel() }
+            else {
+                selectedTab = .dashboard
+                startInitialLoad(replacing: true)
+                startRefreshTimer()
+                switch onboarding.completionAction {
+                case .overview: break
+                case .nginx: showOnboardingNginx = true
+                case .compose: DispatchQueue.main.async { ComposeAddFlow.present(service: composeService) }
+                }
+            }
         }
         .onChange(of: powerEvents.isSleeping) { _, sleeping in
             if sleeping {
@@ -593,7 +612,7 @@ struct ContentView: View {
             searchText = ""
         }
         .onChange(of: systemService.systemStatus) { _, newStatus in
-            if newStatus == .running && !powerEvents.isSleeping {
+            if newStatus == .running && !powerEvents.isSleeping && !onboarding.isPresented {
                 if !powerEvents.isPolling { startInitialLoad() }
                 startRefreshTimer()
             }

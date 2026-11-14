@@ -31,6 +31,7 @@ final class AppServices: ObservableObject {
     let composeService: ComposeService
     let composePluginService: ComposePluginService
     let containerInstallService: ContainerInstallService
+    let onboarding: OnboardingCoordinator
     let modelService: ModelService
     let modelServerService: ModelServerService
     let rosettaService: RosettaService
@@ -175,6 +176,74 @@ final class AppServices: ObservableObject {
         self.composePluginService = composePluginService
         let containerInstallService = ContainerInstallService(commandRunner: runner)
         self.containerInstallService = containerInstallService
+
+        let uiArgs = ProcessInfo.processInfo.arguments
+        let uiMock = uiArgs.contains(uiTestMockBackendArgument) || ProcessInfo.processInfo.environment["ORCHARD_UITEST_MOCK_BACKEND"] == "1"
+        let uiStateIndex = uiArgs.firstIndex(of: "--uitest-onboarding")
+        let uiState = uiStateIndex.flatMap { uiArgs.indices.contains($0 + 1) ? uiArgs[$0 + 1] : nil }
+        let liveOperations = OnboardingCoordinator.Operations(
+            detect: {
+                await systemService.checkSystemStatus()
+                if systemService.systemStatus == .notInstalled { return .init(installed: false, running: false, version: nil) }
+                let running = systemService.systemStatus == .running || systemService.systemStatus == .newerVersion
+                var version = systemService.containerVersion
+                if version == nil {
+                    let result = try await runner.run(program: settings.safeContainerBinaryPath(), arguments: ["--version"])
+                    let output = (result.stdout ?? "") + " " + (result.stderr ?? "")
+                    if let range = output.range(of: #"[0-9]+\.[0-9]+(?:\.[0-9]+)?"#, options: .regularExpression) { version = String(output[range]) }
+                }
+                return .init(installed: true, running: running, version: version)
+            },
+            install: { await containerInstallService.installWithoutStarting() },
+            installFailure: { containerInstallService.wasDeclined ? "Installation needs an administrator. Nothing was installed." : containerInstallService.failureMessage },
+            acceptNewer: { systemService.systemStatusVersionOverride = true },
+            start: { fresh in
+                await systemService.startSystem(installKernel: fresh)
+                return systemService.systemStatus == .running
+            },
+            startFailure: { alertCenter.current?.message ?? systemService.systemStatusError },
+            verify: {
+                let health = try await backend.ping()
+                switch OnboardingCoordinator.policy(version: health.apiServerVersion) {
+                case .incompatible, .unknown: throw OrchardError.generic("The running Runtime has an incompatible or unreadable version.")
+                case .newer where !systemService.systemStatusVersionOverride: throw OrchardError.generic("The running Runtime is newer; retry setup to review the version warning.")
+                default: break
+                }
+                async let containers = backend.listContainers()
+                async let images = backend.listImages()
+                _ = try await (containers, images)
+            },
+            pluginInstalled: { await composePluginService.refresh(); return composePluginService.isInstalled },
+            installPlugin: { await composePluginService.install(); return composePluginService.isInstalled },
+            pluginFailure: { composePluginService.failureMessage }
+        )
+        #if DEBUG
+        let setupOperations: OnboardingCoordinator.Operations
+        if let uiState {
+            let runtime: OnboardingCoordinator.Runtime
+            switch uiState {
+            case "missing": runtime = .init(installed: false, running: false, version: nil)
+            case "stopped": runtime = .init(installed: true, running: false, version: supportedContainerVersion)
+            case "older": runtime = .init(installed: true, running: true, version: "1.6.0")
+            case "newer": runtime = .init(installed: true, running: true, version: "1.8.0")
+            case "incompatible": runtime = .init(installed: true, running: true, version: "2.0.0")
+            default: runtime = .init(installed: true, running: true, version: supportedContainerVersion)
+            }
+            setupOperations = .init(detect: { runtime }, install: { true }, installFailure: { nil }, acceptNewer: {}, start: { _ in true }, startFailure: { nil }, verify: {}, pluginInstalled: { false }, installPlugin: { true }, pluginFailure: { nil })
+        } else { setupOperations = liveOperations }
+        #else
+        let setupOperations = liveOperations
+        #endif
+        #if DEBUG
+        let setupDefaults = uiState == nil ? defaults : (UserDefaults(suiteName: "ContainerDeskSetupUITest-\(UUID().uuidString)") ?? defaults)
+        #else
+        let setupDefaults = defaults
+        #endif
+        let onboarding = OnboardingCoordinator(defaults: setupDefaults, operations: setupOperations, forceShow: uiState != nil)
+        #if DEBUG
+        if uiMock && uiState == nil { onboarding.skipForUITest() }
+        #endif
+        self.onboarding = onboarding
 
         containerListService.reloadBuilders = { [weak builderService] in await builderService?.loadBuilders() }
         // A commit adds an image, or replaces one.

@@ -14,7 +14,7 @@ struct NewerVersionView: View {
                     .fontWeight(.semibold)
 
                 if let installedVersion = systemService.parsedContainerVersion {
-                    Text("We require Apple Container version \(systemService.parsedContainerVersion ?? "unknown"), but you are running version \(installedVersion)")
+                    Text("ContainerDesk links Apple container \(supportedContainerVersion), but version \(installedVersion) is running.")
                         .padding(.horizontal)
                         .multilineTextAlignment(.center)
                 } else if let rawVersion = systemService.containerVersion {
@@ -24,11 +24,11 @@ struct NewerVersionView: View {
                         .padding(.horizontal)
                         .multilineTextAlignment(.center)
 
-                    Text("We require Apple Container version \(systemService.parsedContainerVersion ?? "unknown")")
+                    Text("ContainerDesk links Apple container \(supportedContainerVersion).")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 } else {
-                    Text("We require Apple Container version \(systemService.parsedContainerVersion ?? "unknown")")
+                    Text("ContainerDesk links Apple container \(supportedContainerVersion).")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }

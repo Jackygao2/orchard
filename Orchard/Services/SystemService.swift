@@ -110,7 +110,11 @@ final class SystemService: ObservableObject {
             guard lifecycleGeneration == generation else { return }
             self.containerVersion = health.apiServerVersion
             self.parsedContainerVersion = health.apiServerVersion
-            self.systemStatus = .running
+            switch OnboardingCoordinator.policy(version: health.apiServerVersion) {
+            case .incompatible: self.systemStatus = .unsupportedVersion
+            case .newer where !systemStatusVersionOverride: self.systemStatus = .newerVersion
+            default: self.systemStatus = .running
+            }
             self.systemStatusError = nil
         } catch {
             guard lifecycleGeneration == generation else { return }
@@ -173,14 +177,14 @@ final class SystemService: ObservableObject {
             var attempts = 0
             while attempts < 10 {
                 await checkSystemStatus()
-                if systemStatus == .running || systemStatus == .unsupportedVersion { break }
+                if systemStatus == .running || systemStatus == .newerVersion || systemStatus == .unsupportedVersion { break }
                 try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
                 attempts += 1
             }
             
             isSystemLoading = false
             
-            if systemStatus == .unsupportedVersion {
+            if systemStatus == .unsupportedVersion || systemStatus == .newerVersion {
                 return
             }
             if systemStatus != .running {

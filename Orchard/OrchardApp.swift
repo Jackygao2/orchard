@@ -117,6 +117,7 @@ extension View {
             .environmentObject(s.composeService)
             .environmentObject(s.composePluginService)
             .environmentObject(s.containerInstallService)
+            .environmentObject(s.onboarding)
             .environmentObject(s.modelService)
             .environmentObject(s.modelServerService)
             .environmentObject(s.rosettaService)

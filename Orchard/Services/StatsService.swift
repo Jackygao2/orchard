@@ -387,7 +387,7 @@ final class StatsService: ObservableObject {
 
     /// Plumb a stats failure to the system log and the test capture hook (if any).
     private func recordFailure(_ message: String) {
-        Log.xpc.error("\(message, privacy: .public)")
+        Log.xpc.error("\(message, privacy: .private)")
         testLogHook?(message)
     }
 

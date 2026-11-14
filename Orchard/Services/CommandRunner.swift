@@ -76,10 +76,8 @@ struct SystemCommandRunner: CommandRunner {
     /// executed. Pure and unit-tested.
     static func adminScript(program: String, arguments: [String]) -> String {
         let command = ([program] + arguments).map(shellQuote).joined(separator: " ")
-        let escaped = command
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        return "do shell script \"\(escaped)\" with administrator privileges"
+        let literal = TerminalLauncher.appleScriptLiteral(command)
+        return "do shell script \(literal) with administrator privileges"
     }
 
     func runStreaming(

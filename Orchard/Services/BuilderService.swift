@@ -67,7 +67,7 @@ final class BuilderService: ObservableObject {
             isBuildersLoading = false
             let detail = result.stderr?.trimmingCharacters(in: .whitespacesAndNewlines)
             if let detail, !detail.isEmpty {
-                Log.containers.error("Builder status command failed (exit \(result.exitCode)). Stderr:\n\(detail)")
+                Log.containers.error("Builder status command failed (exit \(result.exitCode)). Stderr: \(detail, privacy: .private)")
             } else {
                 Log.containers.error("Builder status command failed with unknown error (exit \(result.exitCode)).")
             }
@@ -92,7 +92,7 @@ final class BuilderService: ObservableObject {
             }
 
         case .decodeFailure(let preview):
-            Log.containers.error("Failed to decode builder status. Stdout preview (first 200 chars):\n\(preview)")
+            Log.containers.error("Failed to decode builder status. Stdout preview: \(preview, privacy: .private)")
             builders = []
             builderStatus = .stopped
             isBuildersLoading = false

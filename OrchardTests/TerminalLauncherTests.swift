@@ -56,3 +56,36 @@ func terminalLauncherMissingFieldsMessage() {
     #expect(message.contains("-2700"))
     #expect(!message.contains("SomeInternalKey"))
 }
+
+@Test("Terminal arguments preserve literal shell metacharacters and quoted words")
+func terminalLiteralArguments() throws {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: root) }
+    let executable = root.appendingPathComponent("fake container's binary")
+    try "#!/bin/sh\nprintf '%s\\n' \"$@\"\n".write(to: executable, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: executable.path)
+    let marker = root.appendingPathComponent("injected")
+    let shell = "bash -l ';touch \(marker.path)' \"a b\""
+    let command = try #require(TerminalLauncher.containerCommand(binary: executable.path, containerID: "name' ; touch \(marker.path)", shell: shell))
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/bin/sh")
+    process.arguments = ["-c", command]
+    let output = Pipe()
+    process.standardOutput = output
+    try process.run()
+    process.waitUntilExit()
+    let text = String(decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+    #expect(process.terminationStatus == 0)
+    #expect(text.split(separator: "\n").map(String.init) == ["exec", "-it", "name' ; touch \(marker.path)", "bash", "-l", ";touch \(marker.path)", "a b"])
+    #expect(!FileManager.default.fileExists(atPath: marker.path))
+    #expect(TerminalLauncher.shellArguments("bash 'unfinished") == nil)
+    #expect(TerminalLauncher.shellArguments("bash \"\"") == ["bash", ""])
+}
+
+@Test("AppleScript literal encodes line breaks outside string literals")
+func terminalAppleScriptLineBreaks() {
+    let literal = TerminalLauncher.appleScriptLiteral("one\ntwo\rthree")
+    #expect(literal == "\"one\" & character id 10 & \"two\" & character id 13 & \"three\"")
+    #expect(!SystemCommandRunner.adminScript(program: "/bin/echo", arguments: ["a\nb"]).contains("\n"))
+}

@@ -762,7 +762,7 @@ final class ClusterService: ObservableObject {
                 program: settings.safeContainerBinaryPath(),
                 arguments: [pluginCommand, "list", "--format", "json"])
             if result.failed {
-                Log.containers.error("cluster list failed (\(result.exitCode)): \(result.stderr ?? "")")
+                Log.containers.error("cluster list failed (\(result.exitCode)): \(result.stderr ?? "", privacy: .private)")
             } else {
                 loaded = StoredClusterConfiguration.parseList(json: result.stdout ?? "")
                 if loaded == nil { Log.containers.error("cluster list output could not be parsed") }
@@ -1145,7 +1145,7 @@ final class ClusterService: ObservableObject {
             return true
         } catch {
             alertCenter.error("Failed to \(failureVerb): \(error.localizedDescription)")
-            Log.containers.error("Error running \(arguments.joined(separator: " ")): \(error.localizedDescription)")
+            Log.containers.error("Cluster command failed: \(error.localizedDescription, privacy: .private)")
             return false
         }
     }

@@ -10,6 +10,7 @@ struct ContainerDetailHeader: View {
     @EnvironmentObject var terminalLauncher: TerminalLauncher
     @EnvironmentObject var systemService: SystemService
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.isWindowFullScreen) private var isWindowFullScreen
     @State private var showEditConfiguration = false
     @State private var showRunCommand = false
     @State private var showDeleteConfirmation = false
@@ -391,7 +392,7 @@ struct ContainerDetailHeader: View {
             .accessibilityLabel("Container actions")
         }
         .padding(.horizontal, 16)
-        .padding(.top, 20)
+        .padding(.top, isWindowFullScreen ? 20 : 52)
         .padding(.bottom, 12)
         .alert(ownedDeleteWarning?.title ?? "Delete Container?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }

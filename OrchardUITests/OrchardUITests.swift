@@ -238,6 +238,8 @@ final class OrchardUITests: XCTestCase {
         let title = app.staticTexts["container-detail-title"]
         XCTAssertTrue(title.exists)
         XCTAssertGreaterThan(title.frame.width, 75, "The selected container's title should remain readable")
+        XCTAssertGreaterThanOrEqual(title.frame.minY, app.toolbars.firstMatch.frame.maxY,
+                                    "The container title should be below the window toolbar")
         XCTAssertTrue(app.buttons["Stop"].isHittable)
     }
 

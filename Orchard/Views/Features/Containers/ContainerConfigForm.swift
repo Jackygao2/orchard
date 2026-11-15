@@ -108,6 +108,7 @@ struct ContainerConfigForm: View {
                     .fontWeight(.medium)
 
                 TextField("Enter container name", text: $config.name)
+                    .accessibilityLabel("Container name")
                     .accessibilityIdentifier("container-name")
                     .textFieldStyle(.roundedBorder)
                     .disabled(mode == .edit)   // name is the identity; can't change on edit

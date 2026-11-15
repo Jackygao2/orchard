@@ -65,6 +65,8 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(run.exists)
         run.click()
         XCTAssertTrue(app.descendants(matching: .any)["run-container-image"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.textFields["run-container-image"].label, "Image")
+        XCTAssertEqual(app.textFields["container-name"].label, "Container name")
     }
 
     @MainActor

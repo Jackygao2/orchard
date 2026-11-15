@@ -198,6 +198,7 @@ struct RunContainerView: View {
 
             HStack(spacing: 6) {
                 TextField("Filter local images or paste reference", text: $config.image)
+                    .accessibilityLabel("Image")
                     .accessibilityIdentifier("run-container-image")
                     .textFieldStyle(.roundedBorder)
                     .onChange(of: config.image) { oldValue, newValue in

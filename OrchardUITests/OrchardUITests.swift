@@ -523,6 +523,26 @@ final class OrchardUITests: XCTestCase {
         }
         XCTAssertTrue(note.waitForExistence(timeout: 10))
         XCTAssertTrue(sheet.descendants(matching: .any)["mount-read-only"].exists)
+        XCTAssertTrue(sheet.buttons["Remove mount"].exists)
+    }
+
+    @MainActor
+    func testContainerMappingControlsHaveAccessibleNames() throws {
+        let app = launchedApp()
+        let run = app.buttons["toolbar-run-container"]
+        XCTAssertTrue(run.waitForExistence(timeout: 20))
+        run.click()
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: 10))
+        sheet.buttons["container-add-port"].click()
+        XCTAssertTrue(sheet.textFields["Host port"].waitForExistence(timeout: 10))
+        XCTAssertTrue(sheet.textFields["Container port"].exists)
+        XCTAssertTrue(sheet.popUpButtons["Port protocol"].exists)
+        XCTAssertTrue(sheet.buttons["Remove port mapping"].exists)
+        sheet.buttons["container-add-environment"].click()
+        XCTAssertTrue(sheet.textFields["Environment variable name"].waitForExistence(timeout: 10))
+        XCTAssertTrue(sheet.textFields["Environment variable value"].exists)
+        XCTAssertTrue(sheet.buttons["Remove environment variable"].exists)
     }
 
     @MainActor

@@ -832,6 +832,7 @@ struct PortMappingRow: View {
     var body: some View {
         HStack(spacing: 12) {
             TextField("Host Port", text: $mapping.hostPort)
+                .accessibilityLabel("Host port")
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 100)
 
@@ -839,6 +840,7 @@ struct PortMappingRow: View {
                 .foregroundColor(.secondary)
 
             TextField("Container Port", text: $mapping.containerPort)
+                .accessibilityLabel("Container port")
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 100)
 
@@ -846,6 +848,7 @@ struct PortMappingRow: View {
                 Text("TCP").tag("tcp")
                 Text("UDP").tag("udp")
             }
+            .accessibilityLabel("Port protocol")
             .frame(width: 80)
 
             Spacer()
@@ -855,6 +858,7 @@ struct PortMappingRow: View {
                     .foregroundColor(.red)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Remove port mapping")
         }
         .padding(12)
         .background(Color(NSColor.controlBackgroundColor))
@@ -909,6 +913,7 @@ struct VolumeMappingRow: View {
                         .foregroundColor(.red)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Remove mount")
             }
 
             HStack {
@@ -1079,6 +1084,7 @@ struct EnvironmentVariableRow: View {
     var body: some View {
         HStack(spacing: 12) {
             TextField("KEY", text: $envVar.key)
+                .accessibilityLabel("Environment variable name")
                 .textFieldStyle(.roundedBorder)
                 .frame(minWidth: 150)
 
@@ -1086,6 +1092,7 @@ struct EnvironmentVariableRow: View {
                 .foregroundColor(.secondary)
 
             TextField("value", text: $envVar.value)
+                .accessibilityLabel("Environment variable value")
                 .textFieldStyle(.roundedBorder)
 
             Button(action: onDelete) {
@@ -1093,6 +1100,7 @@ struct EnvironmentVariableRow: View {
                     .foregroundColor(.red)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Remove environment variable")
         }
         .padding(12)
         .background(Color(NSColor.controlBackgroundColor))

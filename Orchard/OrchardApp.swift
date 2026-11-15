@@ -23,6 +23,7 @@ struct OrchardApp: App {
             ContentView()
                 .injectServices(services)
                 .environmentObject(updater)
+                .modifier(ReduceMotionModifier())
         }
         .defaultSize(width: 1200, height: 800)
         .windowToolbarStyle(.unified(showsTitle: false))
@@ -71,6 +72,7 @@ struct OrchardApp: App {
         WindowGroup(id: "logs", for: LogTarget.self) { $target in
             MultiLogView(initialTarget: target)
                 .injectServices(services)
+                .modifier(ReduceMotionModifier())
         }
         .defaultSize(width: 900, height: 600)
         .windowToolbarStyle(.unified(showsTitle: false))
@@ -78,6 +80,7 @@ struct OrchardApp: App {
         MenuBarExtra {
             MenuBarView()
                 .injectServices(services)
+                .modifier(ReduceMotionModifier())
         } label: {
             SwiftUI.Image("MenuBarLogo")
                 .renderingMode(.template)
@@ -91,6 +94,7 @@ struct OrchardApp: App {
             SettingsView()
                 .injectServices(services)
                 .environmentObject(updater)
+                .modifier(ReduceMotionModifier())
         }
     }
 }

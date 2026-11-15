@@ -13,6 +13,7 @@ struct RunCommandView: View {
                 .foregroundStyle(.secondary)
             TextField("Command and arguments", text: $input)
                 .textFieldStyle(.roundedBorder)
+                .accessibilityLabel("Command and arguments")
                 .accessibilityIdentifier("run-command-input")
                 .disabled(model.phase == .running)
             ScrollView {

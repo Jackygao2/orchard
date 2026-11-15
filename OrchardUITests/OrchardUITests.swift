@@ -725,6 +725,8 @@ final class OrchardUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let filter = app.textFields["logs-filter"].firstMatch
         XCTAssertTrue(filter.waitForExistence(timeout: 20))
+        XCTAssertEqual(filter.label, "Filter logs")
+        XCTAssertTrue(app.popUpButtons["Log source"].exists)
         app.typeKey("f", modifierFlags: .command)
         app.typeText("second")
         XCTAssertEqual(filter.value as? String, "second")
@@ -746,6 +748,7 @@ final class OrchardUITests: XCTestCase {
         open.click()
         let input = app.textFields["run-command-input"]
         XCTAssertTrue(input.waitForExistence(timeout: 10))
+        XCTAssertEqual(input.label, "Command and arguments")
         input.click()
         input.typeText("echo 'hello world'")
         app.buttons["run-command-submit"].click()

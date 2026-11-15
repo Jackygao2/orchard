@@ -235,6 +235,10 @@ final class OrchardUITests: XCTestCase {
         let allocated = app.staticTexts["2 cores allocated"]
         XCTAssertTrue(allocated.waitForExistence(timeout: 10))
         XCTAssertGreaterThan(allocated.frame.width, 75, "The CPU allocation should not collapse into a narrow column")
+        let title = app.staticTexts["container-detail-title"]
+        XCTAssertTrue(title.exists)
+        XCTAssertGreaterThan(title.frame.width, 75, "The selected container's title should remain readable")
+        XCTAssertTrue(app.buttons["Stop"].isHittable)
     }
 
     @MainActor

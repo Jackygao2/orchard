@@ -507,12 +507,16 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(more.waitForExistence(timeout: 10))
         XCTAssertFalse(sheet.buttons["container-add-mount"].exists)
         more.click()
+        XCTAssertTrue(sheet.textFields["CPUs"].exists)
+        XCTAssertTrue(sheet.textFields["Memory in GB"].exists)
         let addMount = sheet.buttons["container-add-mount"]
         for _ in 0..<8 where !(addMount.exists && addMount.isHittable) {
             scroll.scroll(byDeltaX: 0, deltaY: -180)
         }
         XCTAssertTrue(addMount.waitForExistence(timeout: 10))
         addMount.click()
+        XCTAssertTrue(sheet.textFields["Host path"].waitForExistence(timeout: 10))
+        XCTAssertTrue(sheet.textFields["Container path"].exists)
         let note = sheet.descendants(matching: .any)["host-mount-security-note"]
         for _ in 0..<5 where !(note.exists && note.isHittable) {
             scroll.scroll(byDeltaX: 0, deltaY: -120)

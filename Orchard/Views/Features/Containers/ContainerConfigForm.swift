@@ -425,14 +425,14 @@ struct ContainerConfigForm: View {
                     Text("CPUs")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    NumericStepperField(value: $config.cpus, range: 1...hostCores)
+                    NumericStepperField(value: $config.cpus, accessibilityName: "CPUs", range: 1...hostCores)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Memory")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    NumericStepperField(value: $config.memoryGiB, range: 1...hostGiB, unit: "GB")
+                    NumericStepperField(value: $config.memoryGiB, accessibilityName: "Memory in GB", range: 1...hostGiB, unit: "GB")
                 }
             }
 
@@ -901,6 +901,7 @@ struct VolumeMappingRow: View {
                     .foregroundColor(.secondary)
 
                 TextField("Container Path", text: $mapping.containerPath)
+                    .accessibilityLabel("Container path")
                     .textFieldStyle(.roundedBorder)
 
                 Button(action: onDelete) {
@@ -969,6 +970,7 @@ struct VolumeMappingRow: View {
         switch mapping.kind {
         case .bind:
             TextField("Host Path", text: $mapping.hostPath)
+                .accessibilityLabel("Host path")
                 .textFieldStyle(.roundedBorder)
         case .volume(let name):
             volumePicker(name)

@@ -539,7 +539,13 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(sheet.textFields["Container port"].exists)
         XCTAssertTrue(sheet.popUpButtons["Port protocol"].exists)
         XCTAssertTrue(sheet.buttons["Remove port mapping"].exists)
-        sheet.buttons["container-add-environment"].click()
+        let addEnvironment = sheet.buttons["container-add-environment"]
+        let scroll = sheet.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.65))
+        for _ in 0..<8 where !addEnvironment.isHittable {
+            scroll.scroll(byDeltaX: 0, deltaY: -180)
+        }
+        XCTAssertTrue(addEnvironment.waitForExistence(timeout: 10))
+        addEnvironment.click()
         XCTAssertTrue(sheet.textFields["Environment variable name"].waitForExistence(timeout: 10))
         XCTAssertTrue(sheet.textFields["Environment variable value"].exists)
         XCTAssertTrue(sheet.buttons["Remove environment variable"].exists)

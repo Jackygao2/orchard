@@ -40,7 +40,7 @@ The script requires the configured Developer ID identity and hardened app signat
 
 Resolve these before publishing:
 
-1. **Developer ID and notarization credentials (`OPEN(14)`).** No signing identity or notarization profile is configured. Keep all credentials in the macOS keychain or approved CI secrets, never in the repository or logs.
+1. **Developer ID and notarization credentials.** Ticket 14 resolved with none configured: no signing identity or notarytool profile is available. The public-distribution target remains a signed, hardened and notarized DMG; the unsigned artifact is local development only. Keep future credentials in the macOS keychain, never in the repository or logs.
 2. **Release automation policy (`OPEN(16)`).** The choice of local-only scripts versus GitHub Actions, its triggers and credential handling are undecided. The local `scripts/notarize.sh` exists, but no CI workflow was added. Do not run Orchard's inherited release script or workflow as a substitute.
 3. **Verification environment (`OPEN(15)`).** The acceptance environment decision is unresolved. E-01 was attempted on this Mac with retained Runtime data and is incomplete; the Runtime is now installed and running. Do not treat this machine as a clean E-01 environment. Resolve the environment decision before planning any clean-install acceptance run.
 4. **Product acceptance.** E-01…E-20 have mixed Pass, Partial and Not run results in the acceptance plan. E-01 was attempted with retained Runtime data and lacks a full-flow recording; it is not a clean-install pass. E-14 and E-17 remain unrun, and several other scenarios remain partial.

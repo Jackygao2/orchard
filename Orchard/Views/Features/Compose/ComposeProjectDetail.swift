@@ -4,6 +4,7 @@ import ComposePlanner
 import SwiftUI
 
 struct ComposeProjectDetailView: View {
+    @Environment(\.isWindowFullScreen) private var isWindowFullScreen
     @EnvironmentObject var composeService: ComposeService
     @EnvironmentObject var alertCenter: AlertCenter
     @EnvironmentObject var containerListService: ContainerListService
@@ -77,7 +78,7 @@ struct ComposeProjectDetailView: View {
     // MARK: - Header
 
     private func header(_ project: ComposeProject) -> some View {
-        HStack {
+        VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 8) {
                     Text(project.name)
@@ -93,88 +94,96 @@ struct ComposeProjectDetailView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            Spacer()
             actions(project)
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.top, isWindowFullScreen ? 20 : 52)
+        .padding(.bottom, 12)
     }
 
     @ViewBuilder
     private func actions(_ project: ComposeProject) -> some View {
-        HStack(spacing: 8) {
-            // The path is long and rarely read, so the header offers it rather than showing it.
-            if let url = project.fileURL {
-                Button {
-                    ComposeFileActions.reveal(url, alertCenter: alertCenter)
-                } label: {
-                    Label("Show in Finder", systemImage: "folder")
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                Button("Remove Volumes…") {
+                    ComposeDown.requestRemoval(project, volumeService: volumeService, pending: $pendingDown)
                 }
-                .disabled(composeService.fileIsMissing(for: project))
-                .help(url.path)
-                Button("Open in Editor") {
-                    ComposeFileActions.open(url, alertCenter: alertCenter)
-                }
-                .disabled(composeService.fileIsMissing(for: project))
-                Button("Open With…") {
-                    ComposeFileActions.chooseEditor(for: url, alertCenter: alertCenter)
-                }
-                .disabled(composeService.fileIsMissing(for: project))
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(url.path, forType: .string)
-                } label: {
-                    Label("Copy Path", systemImage: "doc.on.doc")
-                }
-                .help("Copy the compose file's path")
-            }
-            if project.hasFile {
-                Button {
-                    Task {
-                        if let plan = await composeService.dryRun(project: project) {
-                            dryRunPlan = DryRunPlan(operations: plan.operations)
+                .disabled(isBusy || ComposeProjectVolume.labelled(project.name, in: volumeService.volumes).isEmpty)
+
+                if project.hasFile {
+                    Button {
+                        Task {
+                            if let plan = await composeService.dryRun(project: project) {
+                                dryRunPlan = DryRunPlan(operations: plan.operations)
+                            }
                         }
+                    } label: {
+                        Label("Dry Run", systemImage: "list.bullet.clipboard")
                     }
-                } label: {
-                    Label("Dry Run", systemImage: "list.bullet.clipboard")
+                    .accessibilityIdentifier("compose-dry-run")
+                    .disabled(isBusy || composeService.fileIsMissing(for: project))
+                    .help("Preview an Up plan without making changes")
                 }
-                .accessibilityIdentifier("compose-dry-run")
-                .disabled(isBusy || composeService.fileIsMissing(for: project))
-                .help("Preview an Up plan without making changes")
+
+                // The path is long and rarely read, so the header offers it rather than showing it.
+                if let url = project.fileURL {
+                    Button {
+                        ComposeFileActions.reveal(url, alertCenter: alertCenter)
+                    } label: {
+                        Label("Show in Finder", systemImage: "folder")
+                    }
+                    .disabled(composeService.fileIsMissing(for: project))
+                    .help(url.path)
+                    Button("Open in Editor") {
+                        ComposeFileActions.open(url, alertCenter: alertCenter)
+                    }
+                    .disabled(composeService.fileIsMissing(for: project))
+                    Button("Open With…") {
+                        ComposeFileActions.chooseEditor(for: url, alertCenter: alertCenter)
+                    }
+                    .disabled(composeService.fileIsMissing(for: project))
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(url.path, forType: .string)
+                    } label: {
+                        Label("Copy Path", systemImage: "doc.on.doc")
+                    }
+                    .help("Copy the compose file's path")
+                }
+                if project.hasFile {
+                    Button {
+                        Task { await composeService.up(project: project) }
+                    } label: {
+                        Label("Up", systemImage: "play.fill")
+                    }
+                    .disabled(isBusy || composeService.fileIsMissing(for: project) || hasUnreviewedChanges)
+                    .help(hasUnreviewedChanges ? "Review what this file now asks for first" : "Create and start the services")
+                } else {
+                    Button {
+                        ComposeAddFlow.present(service: composeService)
+                    } label: {
+                        Label("Add Compose File", systemImage: "doc.badge.plus")
+                    }
+                }
                 Button {
-                    Task { await composeService.up(project: project) }
+                    ComposeDown.request(
+                        project,
+                        composeService: composeService,
+                        volumeService: volumeService,
+                        pending: $pendingDown
+                    )
                 } label: {
-                    Label("Up", systemImage: "play.fill")
+                    Label("Down", systemImage: "stop.fill")
                 }
-                .disabled(isBusy || composeService.fileIsMissing(for: project) || hasUnreviewedChanges)
-                .help(hasUnreviewedChanges ? "Review what this file now asks for first" : "Create and start the services")
-            } else {
-                Button {
-                    ComposeAddFlow.present(service: composeService)
-                } label: {
-                    Label("Add Compose File", systemImage: "doc.badge.plus")
-                }
-            }
-            Button("Remove Volumes…") {
-                ComposeDown.requestRemoval(project, volumeService: volumeService, pending: $pendingDown)
-            }
-            .disabled(isBusy || ComposeProjectVolume.labelled(project.name, in: volumeService.volumes).isEmpty)
-            Button {
-                ComposeDown.request(
-                    project,
-                    composeService: composeService,
-                    volumeService: volumeService,
-                    pending: $pendingDown
+                .disabled(isBusy || project.containers.isEmpty)
+                .help(
+                    project.containers.isEmpty
+                        ? "Remove the volumes this project kept"
+                        : "Stop and remove this project's containers"
                 )
-            } label: {
-                Label("Down", systemImage: "stop.fill")
             }
-            .disabled(isBusy || project.containers.isEmpty)
-            .help(
-                project.containers.isEmpty
-                    ? "Remove the volumes this project kept"
-                    : "Stop and remove this project's containers"
-            )
         }
+        .accessibilityLabel("Compose project actions")
     }
 
     // MARK: - Tabs

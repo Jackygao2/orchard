@@ -46,7 +46,11 @@ final class AppServices: ObservableObject {
             let testRecords = FileManager.default.temporaryDirectory
                 .appendingPathComponent("containerdesk-ui-\(UUID().uuidString)", isDirectory: true)
                 .appendingPathComponent("compose-projects.json")
-            return AppServices(backend: UITestBackend(), machineBackend: UITestMachineBackend(), modelBackend: UITestModelBackend(), modelServerEngine: UITestModelServerEngine(), runner: UITestCommandRunner(), isContainerInstalled: { true }, rosettaService: RosettaService(probe: { .installed }, installer: {}), simulateTerminal: true, composePersistence: ComposeProjectsPersistence(fileURL: testRecords))
+            let services = AppServices(backend: UITestBackend(), machineBackend: UITestMachineBackend(), modelBackend: UITestModelBackend(), modelServerEngine: UITestModelServerEngine(), runner: UITestCommandRunner(), isContainerInstalled: { true }, rosettaService: RosettaService(probe: { .installed }, installer: {}), simulateTerminal: true, composePersistence: ComposeProjectsPersistence(fileURL: testRecords))
+            if ProcessInfo.processInfo.arguments.contains(uiTestSeedStatsArgument) {
+                services.statsService.history.replaceAll(UITestSeed.statsHistory())
+            }
+            return services
         }
         #endif
         let services = AppServices()

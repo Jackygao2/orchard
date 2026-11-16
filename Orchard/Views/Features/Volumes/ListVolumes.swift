@@ -36,7 +36,7 @@ struct VolumesListView: View {
                 ProgressView()
                     .padding()
                 Text("Loading volumes...")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
                     .font(.caption)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -51,16 +51,16 @@ struct VolumesListView: View {
         VStack {
             SwiftUI.Image(systemName: "cylinder")
                 .font(.system(size: 32))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
                 .padding(.bottom, 8)
             Text(volumeService.volumes.isEmpty ? "No Volumes" : "No Matching Volumes")
                 .font(.headline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
             Text(volumeService.volumes.isEmpty
                  ? "Create a volume, or run a container with one"
                  : volumeService.showOnlyUnused ? "Every volume is mounted, or kept for a compose project" : "Nothing matches the search")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ListItemRow: View {
+    @Environment(\.colorScheme) private var colorScheme
     /// The height of a row with a secondary line in a plain `List`, cell insets included.
     ///
     /// A list given this as its minimum row height lays a newly inserted row out at its real
@@ -12,6 +13,7 @@ struct ListItemRow: View {
 
     let icon: String
     let iconColor: Color
+    let iconAccessibilityLabel: String?
     let primaryText: String
     let secondaryLeftText: String?
     let secondaryRightText: String?
@@ -27,9 +29,14 @@ struct ListItemRow: View {
     /// label.
     let warningBadge: String?
 
+    private var rowTextColor: Color {
+        isSelected && colorScheme == .dark ? .white : .primary
+    }
+
     init(
         icon: String,
         iconColor: Color,
+        iconAccessibilityLabel: String? = nil,
         primaryText: String,
         secondaryLeftText: String? = nil,
         secondaryRightText: String? = nil,
@@ -41,6 +48,7 @@ struct ListItemRow: View {
     ) {
         self.icon = icon
         self.iconColor = iconColor
+        self.iconAccessibilityLabel = iconAccessibilityLabel
         self.primaryText = primaryText
         self.secondaryLeftText = secondaryLeftText
         self.secondaryRightText = secondaryRightText
@@ -54,7 +62,7 @@ struct ListItemRow: View {
     var body: some View {
         HStack(spacing: 12) {
             // Icon
-            SwiftUI.Image(systemName: icon)
+            iconImage
                 .font(.system(size: 16, weight: .regular))
                 .foregroundColor(iconColor)
                 .frame(width: 20, height: 20)
@@ -66,7 +74,7 @@ struct ListItemRow: View {
                 HStack(spacing: 5) {
                     Text(primaryText)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.primary)
+                        .foregroundColor(rowTextColor)
                         .lineLimit(1)
                     if showSandboxBadge {
                         Text("sandbox")
@@ -115,9 +123,9 @@ struct ListItemRow: View {
                     HStack {
                         if let secondaryLeft = secondaryLeftText {
                             Text(secondaryLeft)
-                                .font(.system(size: 10, weight: .regular))
+                                .font(.system(size: 12, weight: .regular))
                                 .fontDesign(.monospaced)
-                                .foregroundColor(isSelected ? .primary : .secondary)
+                                .foregroundColor(rowTextColor)
                                 .lineLimit(1)
                         }
 
@@ -125,9 +133,9 @@ struct ListItemRow: View {
 
                         if let secondaryRight = secondaryRightText {
                             Text(secondaryRight)
-                                .font(.system(size: 10, weight: .regular))
+                                .font(.system(size: 12, weight: .regular))
                                 .fontDesign(.monospaced)
-                                .foregroundColor(isSelected ? .primary : .secondary)
+                                .foregroundColor(rowTextColor)
                                 .lineLimit(1)
                         }
                     }
@@ -139,6 +147,15 @@ struct ListItemRow: View {
         .padding(.horizontal, 6)
         .padding(.vertical, 6)
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var iconImage: some View {
+        if let iconAccessibilityLabel {
+            SwiftUI.Image(systemName: icon).accessibilityLabel(Text(iconAccessibilityLabel))
+        } else {
+            SwiftUI.Image(systemName: icon)
+        }
     }
 }
 

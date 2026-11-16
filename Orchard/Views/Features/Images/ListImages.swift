@@ -66,11 +66,13 @@ struct ImagesListView: View {
             }
         }
         .listStyle(PlainListStyle())
+        .accessibilityLabel("Images")
         .background(
             Button(action: selectAllImages) {
                 EmptyView()
             }
             .keyboardShortcut("a", modifiers: .command)
+            .accessibilityHidden(true)
         )
         .animation(.easeInOut(duration: 0.3), value: imageService.images)
         .focused($listFocusedTab, equals: .images)

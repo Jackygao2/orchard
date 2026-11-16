@@ -10,6 +10,7 @@ struct ContainerDetailHeader: View {
     @EnvironmentObject var terminalLauncher: TerminalLauncher
     @EnvironmentObject var systemService: SystemService
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.isWindowFullScreen) private var isWindowFullScreen
     @State private var showEditConfiguration = false
     @State private var showRunCommand = false
     @State private var showDeleteConfirmation = false
@@ -218,12 +219,13 @@ struct ContainerDetailHeader: View {
     }
 
     var body: some View {
-        HStack {
+        VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 8) {
                     Text(containerName)
                         .font(.title2)
                         .fontWeight(.semibold)
+                        .accessibilityIdentifier("container-detail-title")
                     if container.isSandbox {
                         sandboxBadge
                     }
@@ -246,147 +248,151 @@ struct ContainerDetailHeader: View {
                 Text(imageReference)
                     .font(.subheadline)
                     .fontDesign(.monospaced)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.primary)
             }
-            Spacer()
+            .frame(minWidth: 120, alignment: .leading)
 
             // Action buttons
-            HStack(spacing: 12) {
-                if isRunning {
-                    // Container is running - show stop button and terminal options
-                    Button("Stop") {
-                        OwnedSandboxConfirmation.run(.stop, containers: [container], pending: $pendingOwnedConfirmation) {
-                            stopContainer()
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    if isRunning {
+                        // Container is running - show stop button and terminal options
+                        Button("Stop") {
+                            OwnedSandboxConfirmation.run(.stop, containers: [container], pending: $pendingOwnedConfirmation) {
+                                stopContainer()
+                            }
                         }
-                    }
-                    .buttonStyle(BorderedProminentButtonStyle())
-                    .tint(.orange)
-                    // A cluster node stops with its cluster.
-                    .disabled(isStopping || container.isK8sNode)
-                    .help(container.clusterNodeActionHelp ?? "")
+                        .buttonStyle(BorderedProminentButtonStyle())
+                        .tint(.orange)
+                        // A cluster node stops with its cluster.
+                        .disabled(isStopping || container.isK8sNode)
+                        .help(container.clusterNodeActionHelp ?? "")
 
-                    // Terminal buttons - only when running and not stopping
-                    if !isStopping {
-                        Button("Run Command…") { showRunCommand = true }
-                            .accessibilityIdentifier("open-run-command")
-                        Button("Terminal (sh)") {
-                            terminalLauncher.openTerminal(for: container.configuration.id)
+                        // Terminal buttons - only when running and not stopping
+                        if !isStopping {
+                            Button("Run Command…") { showRunCommand = true }
+                                .accessibilityIdentifier("open-run-command")
+                            Button("Terminal (sh)") {
+                                terminalLauncher.openTerminal(for: container.configuration.id)
+                            }
+                            .keyboardShortcut("t", modifiers: .command)
+                            .buttonStyle(BorderedButtonStyle())
+
+                            Button("Terminal (bash)") {
+                                terminalLauncher.openTerminalWithBash(for: container.configuration.id)
+                            }
+                            .buttonStyle(BorderedButtonStyle())
                         }
-                        .keyboardShortcut("t", modifiers: .command)
-                        .buttonStyle(BorderedButtonStyle())
-
-                        Button("Terminal (bash)") {
-                            terminalLauncher.openTerminalWithBash(for: container.configuration.id)
+                    } else if let cluster = owningCluster {
+                        // A stopped cluster node can't be started, only recreated with its cluster.
+                        Button("Recreate Cluster…") {
+                            Task { recreateSettings = await clusterService.prepareRecreate(cluster) }
                         }
-                        .buttonStyle(BorderedButtonStyle())
-                    }
-                } else if let cluster = owningCluster {
-                    // A stopped cluster node can't be started, only recreated with its cluster.
-                    Button("Recreate Cluster…") {
-                        Task { recreateSettings = await clusterService.prepareRecreate(cluster) }
-                    }
-                    .buttonStyle(BorderedProminentButtonStyle())
-                    .disabled(clusterService.busyClusters.contains(cluster.name))
-                    .help("Apple container can't restart a stopped cluster; this deletes \(cluster.name) and creates it again.")
-                } else {
-                    // Container is stopped - show start button
-                    Button(buttonTitle) {
-                        startContainer()
-                    }
-                    .buttonStyle(BorderedProminentButtonStyle())
-                    .tint(.green)
-                    .disabled(isStarting || isStopping || isDeleting || isTransitioning || !canStart)
-
-                    // Delete button - only when stopped and not starting or transitioning
-                    if !isStarting && !isStopping && !isTransitioning {
-                        Button("Delete", role: .destructive) {
-                            showDeleteConfirmation = true
+                        .buttonStyle(BorderedProminentButtonStyle())
+                        .disabled(clusterService.busyClusters.contains(cluster.name))
+                        .help("Apple container can't restart a stopped cluster; this deletes \(cluster.name) and creates it again.")
+                    } else {
+                        // Container is stopped - show start button
+                        Button(buttonTitle) {
+                            startContainer()
                         }
-                        .keyboardShortcut(.delete, modifiers: .command)
-                        .buttonStyle(BorderedButtonStyle())
-                        .disabled(isDeleting)
-                    }
+                        .buttonStyle(BorderedProminentButtonStyle())
+                        .tint(.green)
+                        .disabled(isStarting || isStopping || isDeleting || isTransitioning || !canStart)
 
-                    Button("Edit Configuration") {
-                        // Saving an edit deletes the container and creates it again, so
-                        // another app's sandbox warns as a remove would.
-                        OwnedSandboxConfirmation.run(.edit, containers: [container], pending: $pendingOwnedConfirmation) {
-                            showEditConfiguration = true
+                        // Delete button - only when stopped and not starting or transitioning
+                        if !isStarting && !isStopping && !isTransitioning {
+                            Button("Delete", role: .destructive) {
+                                showDeleteConfirmation = true
+                            }
+                            .keyboardShortcut(.delete, modifiers: .command)
+                            .buttonStyle(BorderedButtonStyle())
+                            .disabled(isDeleting)
                         }
-                    }
-                    .buttonStyle(BorderedButtonStyle())
-                }
 
-                Button("Logs") {
-                    openWindow(id: "logs", value: LogTarget.container(container.configuration.id))
-                }
-                .keyboardShortcut("l", modifiers: .command)
-                .buttonStyle(BorderedButtonStyle())
-
-                if containerListService.exportingContainers.contains(container.configuration.id) {
-                    Button {
-                    } label: {
-                        HStack(spacing: 6) {
-                            ProgressView().controlSize(.small)
-                            Text("Exporting…")
-                        }
-                    }
-                    .buttonStyle(BorderedButtonStyle())
-                    .disabled(true)
-                } else {
-                    Button("Export…") {
-                        exportContainer()
-                    }
-                    .buttonStyle(BorderedButtonStyle())
-                    .help("Save the container's filesystem as a tar archive")
-                }
-
-                if supportsContainerCommit(containerVersion: systemService.containerVersion) {
-                    if containerListService.committingContainers[container.configuration.id] != nil {
-                        Button {
-                            commitTarget = CommitSheetTarget(id: container.configuration.id)
-                        } label: {
-                            HStack(spacing: 6) {
-                                ProgressView().controlSize(.small)
-                                Text("Committing…")
+                        Button("Edit Configuration") {
+                            // Saving an edit deletes the container and creates it again, so
+                            // another app's sandbox warns as a remove would.
+                            OwnedSandboxConfirmation.run(.edit, containers: [container], pending: $pendingOwnedConfirmation) {
+                                showEditConfiguration = true
                             }
                         }
                         .buttonStyle(BorderedButtonStyle())
-                        .help("Show the commit's progress")
-                    } else {
-                        Button("Commit…") {
-                            commitTarget = CommitSheetTarget(id: container.configuration.id)
-                        }
-                        .buttonStyle(BorderedButtonStyle())
-                        .help("Create an image from the container's filesystem")
                     }
-                }
 
-                // Trimming needs a live filesystem to trim, so it's offered only while
-                // the container runs.
-                if isRunning {
-                    if containerListService.cleaningContainers.contains(container.configuration.id) {
+                    Button("Logs") {
+                        openWindow(id: "logs", value: LogTarget.container(container.configuration.id))
+                    }
+                    .keyboardShortcut("l", modifiers: .command)
+                    .buttonStyle(BorderedButtonStyle())
+
+                    if containerListService.exportingContainers.contains(container.configuration.id) {
                         Button {
                         } label: {
                             HStack(spacing: 6) {
                                 ProgressView().controlSize(.small)
-                                Text("Reclaiming…")
+                                Text("Exporting…")
                             }
                         }
                         .buttonStyle(BorderedButtonStyle())
                         .disabled(true)
                     } else {
-                        Button("Reclaim Space") {
-                            cleanContainer()
+                        Button("Export…") {
+                            exportContainer()
                         }
                         .buttonStyle(BorderedButtonStyle())
-                        .help("Return the container's free disk blocks to the host")
+                        .help("Save the container's filesystem as a tar archive")
+                    }
+
+                    if supportsContainerCommit(containerVersion: systemService.containerVersion) {
+                        if containerListService.committingContainers[container.configuration.id] != nil {
+                            Button {
+                                commitTarget = CommitSheetTarget(id: container.configuration.id)
+                            } label: {
+                                HStack(spacing: 6) {
+                                    ProgressView().controlSize(.small)
+                                    Text("Committing…")
+                                }
+                            }
+                            .buttonStyle(BorderedButtonStyle())
+                            .help("Show the commit's progress")
+                        } else {
+                            Button("Commit…") {
+                                commitTarget = CommitSheetTarget(id: container.configuration.id)
+                            }
+                            .buttonStyle(BorderedButtonStyle())
+                            .help("Create an image from the container's filesystem")
+                        }
+                    }
+
+                    // Trimming needs a live filesystem to trim, so it's offered only while
+                    // the container runs.
+                    if isRunning {
+                        if containerListService.cleaningContainers.contains(container.configuration.id) {
+                            Button {
+                            } label: {
+                                HStack(spacing: 6) {
+                                    ProgressView().controlSize(.small)
+                                    Text("Reclaiming…")
+                                }
+                            }
+                            .buttonStyle(BorderedButtonStyle())
+                            .disabled(true)
+                        } else {
+                            Button("Reclaim Space") {
+                                cleanContainer()
+                            }
+                            .buttonStyle(BorderedButtonStyle())
+                            .help("Return the container's free disk blocks to the host")
+                        }
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityLabel("Container actions")
         }
         .padding(.horizontal, 16)
-        .padding(.top, 20)
+        .padding(.top, isWindowFullScreen ? 20 : 52)
         .padding(.bottom, 12)
         .alert(ownedDeleteWarning?.title ?? "Delete Container?", isPresented: $showDeleteConfirmation) {
             Button("Cancel", role: .cancel) { }

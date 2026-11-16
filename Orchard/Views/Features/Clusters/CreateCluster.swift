@@ -130,11 +130,11 @@ struct CreateClusterView: View {
                             HStack(alignment: .top, spacing: 16) {
                                 field(title: sizesControlPlaneOnly ? "Control-Plane CPUs" : "CPUs",
                                       caption: "Cores allocated (host has \(hostCores)).") {
-                                    NumericStepperField(value: $cpus, range: 1...hostCores)
+                                    NumericStepperField(value: $cpus, accessibilityName: "CPUs", range: 1...hostCores)
                                 }
                                 field(title: sizesControlPlaneOnly ? "Control-Plane Memory (GB)" : "Memory (GB)",
                                       caption: "RAM allocated (host has \(hostGiB) GB).") {
-                                    NumericStepperField(value: $memoryGiB, range: 1...hostGiB, unit: "GB")
+                                    NumericStepperField(value: $memoryGiB, accessibilityName: "Memory in GB", range: 1...hostGiB, unit: "GB")
                                 }
                             }
                         }
@@ -319,7 +319,7 @@ struct CreateClusterView: View {
                         ? "Workloads run on the workers only. Each worker is a node of its own, and each adds to the time the cluster takes to create."
                         : "Workloads run on the workers only. Each worker is a node of its own with the same CPUs and memory as the control plane, and each adds to the time the cluster takes to create."
             ) {
-                NumericStepperField(value: $workers, range: 0...K8sCluster.maxWorkers)
+                NumericStepperField(value: $workers, accessibilityName: "Workers", range: 0...K8sCluster.maxWorkers)
             }
             if supportsWorkerSizing && workers > 0 {
                 workerSizeField
@@ -338,10 +338,10 @@ struct CreateClusterView: View {
             if sizeWorkers {
                 HStack(alignment: .top, spacing: 16) {
                     field(title: "Worker CPUs", caption: "Cores for each worker.") {
-                        NumericStepperField(value: $workerCPUs, range: 1...hostCores)
+                        NumericStepperField(value: $workerCPUs, accessibilityName: "Worker CPUs", range: 1...hostCores)
                     }
                     field(title: "Worker Memory (GB)", caption: "RAM for each worker.") {
-                        NumericStepperField(value: $workerMemoryGiB, range: 1...hostGiB, unit: "GB")
+                        NumericStepperField(value: $workerMemoryGiB, accessibilityName: "Worker memory in GB", range: 1...hostGiB, unit: "GB")
                     }
                 }
             }

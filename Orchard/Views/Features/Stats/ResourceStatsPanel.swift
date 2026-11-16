@@ -56,7 +56,7 @@ struct ResourceStatsPanel<NetworkFooter: View, DiskFooter: View>: View {
                 }
             } else {
                 Text(emptyMessage)
-                    .font(.callout).foregroundColor(.secondary)
+                    .font(.callout).foregroundColor(.primary)
                 diskFooter()
             }
         }
@@ -123,6 +123,6 @@ struct ResourceStatsPanel<NetworkFooter: View, DiskFooter: View>: View {
     private var notRunning: some View {
         Text(isRunning ? "--" : "Not running")
             .font(.title3).fontWeight(.semibold).fontDesign(.monospaced)
-            .foregroundColor(.secondary)
+            .foregroundColor(.primary)
     }
 }

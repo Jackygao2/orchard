@@ -131,6 +131,7 @@ struct LogPaneView: View {
                 // Without labelsHidden, the empty-string label still reserves
                 // a label column and shoves the control off the leading edge.
                 .labelsHidden()
+                .accessibilityLabel("Log source")
                 // Leading alignment as well as labelsHidden: a menu picker centres itself in a
                 // flexible frame, which insets it from the pane's leading edge all over again.
                 .frame(maxWidth: 250, alignment: .leading)
@@ -143,6 +144,7 @@ struct LogPaneView: View {
                     }
                     .pickerStyle(.segmented)
                     .labelsHidden()
+                    .accessibilityLabel("Log type")
                     .frame(width: 150)
                 }
 
@@ -153,6 +155,7 @@ struct LogPaneView: View {
                     .font(.system(size: 11))
                 TextField("Filter logs...", text: $filterText)
                     .focused($filterFocused)
+                    .accessibilityLabel("Filter logs")
                     .accessibilityIdentifier("logs-filter")
                     .textFieldStyle(.plain)
                     .font(.system(size: 12))

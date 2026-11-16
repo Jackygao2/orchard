@@ -5,6 +5,7 @@ struct ImageDetailHeader: View {
     let image: ContainerImage
     @Binding var selectedTab: TabSelection
     @Binding var selectedBuild: UUID?
+    @Environment(\.isWindowFullScreen) private var isWindowFullScreen
     @EnvironmentObject var containerListService: ContainerListService
     @EnvironmentObject var imageService: ImageService
     @EnvironmentObject var imageBuildService: ImageBuildService
@@ -43,6 +44,7 @@ struct ImageDetailHeader: View {
                 Text(imageName)
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .accessibilityIdentifier("image-detail-title")
             }
             Spacer()
 
@@ -83,7 +85,7 @@ struct ImageDetailHeader: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 20)
+        .padding(.top, isWindowFullScreen ? 20 : 52)
         .padding(.bottom, 12)
         .sheet(isPresented: $showRunContainer) {
             RunContainerView(imageName: image.reference)

@@ -601,10 +601,18 @@ struct ContainerImageDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    HStack(alignment: .top, spacing: 20) {
-                        imageOverviewSection()
-                        Divider()
-                        imageTechnicalSection()
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .top, spacing: 20) {
+                            imageOverviewSection()
+                            Divider()
+                            imageTechnicalSection()
+                        }
+                        .fixedSize(horizontal: true, vertical: false)
+                        VStack(alignment: .leading, spacing: 20) {
+                            imageOverviewSection()
+                            Divider()
+                            imageTechnicalSection()
+                        }
                     }
 
                     // Image config from inspection
@@ -768,12 +776,15 @@ struct ContainerImageDetailView: View {
                 .font(.headline)
                 .foregroundColor(.primary)
 
-            ContainerTable(
-                containers: containersUsingImage,
-                selectedTab: $selectedTab,
-                selectedContainer: $selectedContainer,
-                emptyStateMessage: "No containers are currently using this image"
-            )
+            ScrollView(.horizontal) {
+                ContainerTable(
+                    containers: containersUsingImage,
+                    selectedTab: $selectedTab,
+                    selectedContainer: $selectedContainer,
+                    emptyStateMessage: "No containers are currently using this image"
+                )
+                .frame(minWidth: containersUsingImage.isEmpty ? 0 : 600, alignment: .leading)
+            }
         }
     }
 

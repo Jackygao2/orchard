@@ -114,6 +114,7 @@ struct MachinesListView: View {
             }
         }
         .listStyle(PlainListStyle())
+        .accessibilityLabel("Machines")
         .animation(.easeInOut(duration: 0.3), value: machineService.machines)
         .focused($listFocusedTab, equals: .machines)
         .onChange(of: selectedMachine) { _, newValue in

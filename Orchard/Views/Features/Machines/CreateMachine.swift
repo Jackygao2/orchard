@@ -55,10 +55,10 @@ struct CreateMachineView: View {
 
                     HStack(alignment: .top, spacing: 16) {
                         field(title: "CPUs", caption: "Cores allocated (host has \(hostCores)).") {
-                            NumericStepperField(value: $cpus, range: 1...hostCores)
+                            NumericStepperField(value: $cpus, accessibilityName: "CPUs", range: 1...hostCores)
                         }
                         field(title: "Memory (GB)", caption: "RAM allocated (host has \(hostGiB) GB).") {
-                            NumericStepperField(value: $memoryGiB, range: 1...hostGiB, unit: "GB")
+                            NumericStepperField(value: $memoryGiB, accessibilityName: "Memory in GB", range: 1...hostGiB, unit: "GB")
                         }
                     }
 

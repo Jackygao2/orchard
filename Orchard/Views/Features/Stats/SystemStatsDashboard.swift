@@ -95,6 +95,8 @@ struct SystemStatsDashboard: View {
                         diskChart(points, windowSeconds: window.seconds, showLegend: false)
                     }
                 }
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("System resource charts")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

@@ -108,6 +108,7 @@ struct ContainerConfigForm: View {
                     .fontWeight(.medium)
 
                 TextField("Enter container name", text: $config.name)
+                    .accessibilityLabel("Container name")
                     .accessibilityIdentifier("container-name")
                     .textFieldStyle(.roundedBorder)
                     .disabled(mode == .edit)   // name is the identity; can't change on edit
@@ -424,14 +425,14 @@ struct ContainerConfigForm: View {
                     Text("CPUs")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    NumericStepperField(value: $config.cpus, range: 1...hostCores)
+                    NumericStepperField(value: $config.cpus, accessibilityName: "CPUs", range: 1...hostCores)
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Memory")
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    NumericStepperField(value: $config.memoryGiB, range: 1...hostGiB, unit: "GB")
+                    NumericStepperField(value: $config.memoryGiB, accessibilityName: "Memory in GB", range: 1...hostGiB, unit: "GB")
                 }
             }
 
@@ -831,6 +832,7 @@ struct PortMappingRow: View {
     var body: some View {
         HStack(spacing: 12) {
             TextField("Host Port", text: $mapping.hostPort)
+                .accessibilityLabel("Host port")
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 100)
 
@@ -838,6 +840,7 @@ struct PortMappingRow: View {
                 .foregroundColor(.secondary)
 
             TextField("Container Port", text: $mapping.containerPort)
+                .accessibilityLabel("Container port")
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 100)
 
@@ -845,6 +848,7 @@ struct PortMappingRow: View {
                 Text("TCP").tag("tcp")
                 Text("UDP").tag("udp")
             }
+            .accessibilityLabel("Port protocol")
             .frame(width: 80)
 
             Spacer()
@@ -854,6 +858,7 @@ struct PortMappingRow: View {
                     .foregroundColor(.red)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Remove port mapping")
         }
         .padding(12)
         .background(Color(NSColor.controlBackgroundColor))
@@ -900,6 +905,7 @@ struct VolumeMappingRow: View {
                     .foregroundColor(.secondary)
 
                 TextField("Container Path", text: $mapping.containerPath)
+                    .accessibilityLabel("Container path")
                     .textFieldStyle(.roundedBorder)
 
                 Button(action: onDelete) {
@@ -907,6 +913,7 @@ struct VolumeMappingRow: View {
                         .foregroundColor(.red)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Remove mount")
             }
 
             HStack {
@@ -968,6 +975,7 @@ struct VolumeMappingRow: View {
         switch mapping.kind {
         case .bind:
             TextField("Host Path", text: $mapping.hostPath)
+                .accessibilityLabel("Host path")
                 .textFieldStyle(.roundedBorder)
         case .volume(let name):
             volumePicker(name)
@@ -1076,6 +1084,7 @@ struct EnvironmentVariableRow: View {
     var body: some View {
         HStack(spacing: 12) {
             TextField("KEY", text: $envVar.key)
+                .accessibilityLabel("Environment variable name")
                 .textFieldStyle(.roundedBorder)
                 .frame(minWidth: 150)
 
@@ -1083,6 +1092,7 @@ struct EnvironmentVariableRow: View {
                 .foregroundColor(.secondary)
 
             TextField("value", text: $envVar.value)
+                .accessibilityLabel("Environment variable value")
                 .textFieldStyle(.roundedBorder)
 
             Button(action: onDelete) {
@@ -1090,6 +1100,7 @@ struct EnvironmentVariableRow: View {
                     .foregroundColor(.red)
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Remove environment variable")
         }
         .padding(12)
         .background(Color(NSColor.controlBackgroundColor))

@@ -5,6 +5,7 @@ struct NetworkDetailHeader: View {
     let network: ContainerNetwork
     @EnvironmentObject var containerListService: ContainerListService
     @EnvironmentObject var networkService: NetworkService
+    @Environment(\.isWindowFullScreen) private var isWindowFullScreen
     private var connectedContainers: [Container] {
         containerListService.containers.filter { container in
             container.networks.contains { containerNetwork in
@@ -19,6 +20,7 @@ struct NetworkDetailHeader: View {
                 Text(network.id)
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .accessibilityIdentifier("network-detail-title")
             }
             Spacer()
 
@@ -42,7 +44,7 @@ struct NetworkDetailHeader: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 20)
+        .padding(.top, isWindowFullScreen ? 20 : 52)
         .padding(.bottom, 12)
     }
 

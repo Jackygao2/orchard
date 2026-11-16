@@ -26,10 +26,8 @@ final class OrchardUITests: XCTestCase {
     /// The app now opens on the Dashboard; the container list lives under the Containers tab.
     /// Every flow below starts here so it doesn't depend on the launch default.
     ///
-    /// The sidebar row is a tap-gesture view (not a `Button`), and a synthetic `click()` on it
-    /// intermittently fails to register on a cold/slow CI launch — the tab never switches and
-    /// the list column never appears. So click until the seeded row actually renders, which is
-    /// the real signal that navigation took; re-selecting the Containers tab is idempotent.
+    /// Retry until the seeded row renders: selection can race a cold launch, and re-selecting
+    /// the Containers tab is idempotent.
     private func openContainersTab(_ app: XCUIApplication) {
         let tab = app.buttons["sidebar-containers"]
         XCTAssertTrue(tab.waitForExistence(timeout: 20), "Containers sidebar tab should exist")
@@ -67,6 +65,8 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(run.exists)
         run.click()
         XCTAssertTrue(app.descendants(matching: .any)["run-container-image"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.textFields["run-container-image"].label, "Image")
+        XCTAssertEqual(app.textFields["container-name"].label, "Container name")
     }
 
     @MainActor
@@ -80,6 +80,91 @@ final class OrchardUITests: XCTestCase {
             app.typeKey(key, modifierFlags: .command)
             XCTAssertTrue(app.descendants(matching: .any)[identifier].waitForExistence(timeout: 10),
                           "Command-\(key) did not open \(identifier)")
+            if key == "1" {
+                let title = app.staticTexts["overview-content"]
+                XCTAssertTrue(title.waitForExistence(timeout: 10))
+                XCTAssertTrue(title.isHittable, "The Overview title should be visible and actionable to accessibility tools")
+                XCTAssertGreaterThanOrEqual(title.frame.minY, app.toolbars.firstMatch.frame.maxY,
+                                            "The Overview title should be below the window toolbar")
+            }
+        }
+    }
+
+    @MainActor
+    func testOverviewTablesStayReadableInWindowedLayout() throws {
+        let app = launchedApp()
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["overview-content"].waitForExistence(timeout: 10))
+        let diskUsage = app.scrollViews["System disk usage"]
+        XCTAssertTrue(diskUsage.waitForExistence(timeout: 20))
+        let reclaimable = app.staticTexts["Reclaimable"]
+        XCTAssertTrue(reclaimable.exists)
+        for _ in 0..<5 where !diskUsage.frame.contains(reclaimable.frame) {
+            diskUsage.swipeLeft()
+        }
+        XCTAssertTrue(diskUsage.frame.contains(reclaimable.frame), "The last disk tile should be reachable by horizontal scrolling")
+
+        let table = app.scrollViews["Container statistics table"]
+        XCTAssertTrue(table.waitForExistence(timeout: 20))
+        let containerHeader = table.buttons["stats-sort-container"]
+        XCTAssertTrue(containerHeader.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(containerHeader.frame.width, 55,
+                             "The Overview table's container column should not collapse into vertical text")
+    }
+
+    @MainActor
+    func testSystemChartValuesRemainAvailableWhenDecorativeChartsAreHidden() throws {
+        let app = launchedApp(extraArguments: ["--uitest-seed-stats"])
+        app.typeKey("1", modifierFlags: .command)
+
+        XCTAssertTrue(app.staticTexts["CPU"].waitForExistence(timeout: 15), "The seeded system chart should be visible")
+        let currentValue = app.staticTexts["metric-current-value"]
+        XCTAssertTrue(currentValue.waitForExistence(timeout: 10), "The current CPU value should remain available to VoiceOver")
+        let chartGroup = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label == %@", "System resource charts")
+        ).firstMatch
+        XCTAssertTrue(chartGroup.exists, "System resource charts should have a useful accessible name")
+        let sidebarGroup = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label == %@", "Navigation sidebar")
+        ).firstMatch
+        XCTAssertTrue(sidebarGroup.exists, "The navigation sidebar should have a useful accessible name")
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "stats-table-sparkline").count, 0,
+                       "Decorative table sparklines should not duplicate accessible numeric values")
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "metric-chart-CPU").count, 0,
+                       "Visual-only CPU chart marks should not expose unknown roles")
+    }
+
+    @MainActor
+    func testPrimarySidebarHasAccessibilityActions() throws {
+        let app = launchedApp()
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["overview-content"].waitForExistence(timeout: 10))
+        var sidebarIssues: [String] = []
+        try app.performAccessibilityAudit(for: .action) { issue in
+            let identifier = issue.element?.identifier ?? ""
+            if identifier.hasPrefix("sidebar-") || identifier.isEmpty {
+                sidebarIssues.append("\(identifier): \(issue.compactDescription)")
+            }
+            // Other controls are covered by the wider audit, not this focused regression.
+            return true
+        }
+        XCTAssertTrue(sidebarIssues.isEmpty, sidebarIssues.joined(separator: ", "))
+    }
+
+    @MainActor
+    func testPrimarySearchFieldsHaveAccessibleNames() throws {
+        let app = launchedApp()
+        for (key, identifier, name) in [
+            ("2", "search-containers", "Search containers"),
+            ("3", "search-compose", "Search compose projects"),
+            ("4", "search-images", "Search images"),
+            ("5", "search-volumes", "Search volumes"),
+            ("6", "search-networks", "Search networks")
+        ] {
+            app.typeKey(key, modifierFlags: .command)
+            let field = app.textFields[identifier]
+            XCTAssertTrue(field.waitForExistence(timeout: 10), identifier)
+            XCTAssertEqual(field.label, name)
         }
     }
 
@@ -116,6 +201,208 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(confirmation.staticTexts.containing(NSPredicate(format: "value CONTAINS 'uitest-db'")).firstMatch.exists)
         confirmation.buttons["Cancel"].click()
         XCTAssertTrue(app.staticTexts["uitest-db"].exists)
+    }
+
+    @MainActor
+    func testDeleteConfirmationDismissesWithEscape() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        app.staticTexts["uitest-db"].click()
+        app.typeKey(XCUIKeyboardKey.delete, modifierFlags: .command)
+        XCTAssertTrue(app.sheets.firstMatch.waitForExistence(timeout: 10))
+        app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+        XCTAssertFalse(app.sheets.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["uitest-db"].exists)
+    }
+
+    @MainActor
+    func testContainerRowsExposeStatusAndSelectAllShortcut() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        let running = app.descendants(matching: .outlineRow)
+            .containing(.staticText, identifier: "uitest-web").firstMatch
+        XCTAssertTrue(running.waitForExistence(timeout: 10))
+        XCTAssertTrue(running.images["Container status: running"].exists)
+        XCTAssertFalse(running.images["Depth Effect"].exists)
+        app.typeKey("a", modifierFlags: .command)
+        XCTAssertTrue(running.isSelected)
+        let stopped = app.descendants(matching: .outlineRow)
+            .containing(.staticText, identifier: "uitest-db").firstMatch
+        XCTAssertTrue(stopped.isSelected)
+    }
+
+    @MainActor
+    func testContainerStatusAccessibilityUpdatesAfterStart() throws {
+        let app = launchedApp(extraArguments: ["--uitest-status-transitions"])
+        openContainersTab(app)
+        app.staticTexts["uitest-db"].click()
+        let row = app.descendants(matching: .outlineRow)
+            .containing(.staticText, identifier: "uitest-db").firstMatch
+        XCTAssertTrue(row.images["Container status: stopped"].exists)
+        app.buttons["Start"].click()
+        XCTAssertTrue(row.images["Container status: running"].waitForExistence(timeout: 15))
+    }
+
+    @MainActor
+    func testResourceSelectAllShortcutsRemainAvailable() throws {
+        let app = launchedApp()
+        for (key, identifier, rowName) in [
+            ("4", "search-images", "uitest-nginx"),
+            ("6", "search-networks", "uitest-net")
+        ] {
+            app.typeKey(key, modifierFlags: .command)
+            XCTAssertTrue(app.descendants(matching: .any)[identifier].waitForExistence(timeout: 10))
+            let row = app.descendants(matching: .outlineRow)
+                .containing(.staticText, identifier: rowName).firstMatch
+            XCTAssertTrue(row.waitForExistence(timeout: 10), rowName)
+            app.typeKey("a", modifierFlags: .command)
+            XCTAssertTrue(row.isSelected, rowName)
+        }
+    }
+
+    @MainActor
+    func testImageDetailsRemainReadableInNarrowWindow() throws {
+        let app = launchedApp()
+        app.typeKey("4", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["search-images"].waitForExistence(timeout: 10))
+        let window = app.windows.firstMatch
+        let corner = window.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 1))
+        let narrower = window.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 1))
+        corner.press(forDuration: 0.2, thenDragTo: narrower)
+        let reference = app.staticTexts.matching(NSPredicate(format: "value CONTAINS %@", "docker.io/library/uitest-nginx")).firstMatch
+        XCTAssertTrue(reference.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(reference.frame.width, 20, "Image reference should not collapse to a one-point column")
+        let title = app.staticTexts["image-detail-title"]
+        XCTAssertTrue(title.exists)
+        XCTAssertGreaterThanOrEqual(title.frame.minY, app.toolbars.firstMatch.frame.maxY,
+                                    "The image detail title should be below the window toolbar")
+        let hostname = app.staticTexts["Hostname"].firstMatch
+        XCTAssertTrue(hostname.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(hostname.frame.width, 20, "The container table should retain readable columns")
+    }
+
+    @MainActor
+    func testNetworkDetailTitleClearsWindowToolbar() throws {
+        let app = launchedApp()
+        app.typeKey("6", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["search-networks"].waitForExistence(timeout: 10))
+        let title = app.staticTexts["network-detail-title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        XCTAssertGreaterThanOrEqual(title.frame.minY, app.toolbars.firstMatch.frame.maxY,
+                                    "The network detail title should be below the window toolbar")
+    }
+
+    @MainActor
+    func testContainerStatsRemainReadableInNarrowWindow() throws {
+        let app = launchedApp()
+        openContainersTab(app)
+        let window = app.windows.firstMatch
+        let corner = window.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 1))
+        let narrower = window.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 1))
+        corner.press(forDuration: 0.2, thenDragTo: narrower)
+        let allocated = app.staticTexts["2 cores allocated"]
+        XCTAssertTrue(allocated.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(allocated.frame.width, 75, "The CPU allocation should not collapse into a narrow column")
+        let title = app.staticTexts["container-detail-title"]
+        XCTAssertTrue(title.exists)
+        XCTAssertGreaterThan(title.frame.width, 75, "The selected container's title should remain readable")
+        XCTAssertGreaterThanOrEqual(title.frame.minY, app.toolbars.firstMatch.frame.maxY,
+                                    "The container title should be below the window toolbar")
+        XCTAssertTrue(app.buttons["Stop"].isHittable)
+    }
+
+    @MainActor
+    func testImageReferenceLabelContrast() throws {
+        let app = launchedApp()
+        app.typeKey("4", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["search-images"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Reference"].waitForExistence(timeout: 10))
+        var referenceIssues: [String] = []
+        try app.performAccessibilityAudit(for: .contrast) { issue in
+            if (issue.element?.value as? String) == "Reference" || issue.detailedDescription.contains("for Reference") {
+                referenceIssues.append(issue.compactDescription)
+            }
+            // The ticket records other contrast findings for separate investigation.
+            return true
+        }
+        XCTAssertTrue(referenceIssues.isEmpty, referenceIssues.joined(separator: ", "))
+    }
+
+    @MainActor
+    func testImageListSecondaryTextContrast() throws {
+        let app = launchedApp()
+        app.typeKey("4", modifierFlags: .command)
+        XCTAssertTrue(app.staticTexts["latest"].waitForExistence(timeout: 10))
+        var issues: [String] = []
+        try app.performAccessibilityAudit(for: .contrast) { issue in
+            let value = issue.element?.value as? String ?? ""
+            if value == "latest" || value == "Size unavailable" ||
+                issue.detailedDescription.contains("for latest") || issue.detailedDescription.contains("for Size unavailable") {
+                issues.append("\(issue.compactDescription): \(value) \(issue.detailedDescription)")
+            }
+            // Other contrast findings remain recorded in the ticket.
+            return true
+        }
+        XCTAssertTrue(issues.isEmpty, issues.joined(separator: ", "))
+    }
+
+    @MainActor
+    func testPrimaryScreenValuesPassContrastAudit() throws {
+        let app = launchedApp()
+        app.typeKey("1", modifierFlags: .command)
+        var productIssues: [String] = []
+
+        func auditCurrentScreen(_ name: String, matching terms: [String]) throws {
+            try app.performAccessibilityAudit(for: .contrast) { issue in
+                let value = issue.element?.value as? String ?? ""
+                let evidence = "\(value) \(issue.detailedDescription)"
+                if terms.contains(where: { evidence.contains($0) }) {
+                    let element = issue.element
+                    productIssues.append(
+                        "\(name): \(issue.compactDescription) — \(evidence) " +
+                        "[identifier=\(element?.identifier ?? ""), label=\(element?.label ?? ""), frame=\(element?.frame ?? .zero)]"
+                    )
+                }
+                return true
+            }
+        }
+
+        XCTAssertTrue(app.descendants(matching: .any)["overview-content"].waitForExistence(timeout: 10))
+        let diskUsage = app.scrollViews["System disk usage"]
+        XCTAssertTrue(diskUsage.waitForExistence(timeout: 10))
+        let reclaimable = app.staticTexts["Reclaimable"]
+        for _ in 0..<5 where !diskUsage.frame.contains(reclaimable.frame) {
+            diskUsage.swipeLeft()
+        }
+        XCTAssertTrue(diskUsage.frame.contains(reclaimable.frame), "The audit should include fully visible disk tiles")
+        try auditCurrentScreen("Overview", matching: ["Zero KB", "for --"])
+
+        let overviewScroll = app.scrollViews["Overview content"]
+        XCTAssertTrue(overviewScroll.waitForExistence(timeout: 10))
+        let systemNetworkValue = app.staticTexts["↓ 0.0 MB/s"]
+        XCTAssertTrue(systemNetworkValue.waitForExistence(timeout: 10))
+        for _ in 0..<5 where !overviewScroll.frame.contains(systemNetworkValue.frame) {
+            overviewScroll.swipeUp()
+        }
+        XCTAssertTrue(overviewScroll.frame.contains(systemNetworkValue.frame), "System chart values should be fully visible before their contrast audit")
+        try auditCurrentScreen("Overview System charts", matching: [
+            "↓ 0.0 MB/s", "↑ 0.0 MB/s", "R 0 KB/s", "W 0 KB/s"
+        ])
+
+        openContainersTab(app)
+        try auditCurrentScreen("Containers", matching: [
+            "497d 2h", "Not running", "2 cores allocated", "Zero KB allocated", "↓ Zero KB", "↑ Zero KB"
+        ])
+
+        app.typeKey("3", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["search-compose"].waitForExistence(timeout: 10))
+        try auditCurrentScreen("Compose Projects", matching: ["Add a compose file, or bring one up from the terminal"])
+
+        app.typeKey("4", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["search-images"].waitForExistence(timeout: 10))
+        try auditCurrentScreen("Images", matching: ["for —"])
+
+        XCTAssertTrue(productIssues.isEmpty, productIssues.joined(separator: "\n"))
     }
 
     @MainActor
@@ -194,6 +481,20 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testAdvancedListsHaveAccessibleNames() throws {
+        let app = launchedApp()
+        let disclosure = app.buttons["sidebar-advanced"]
+        XCTAssertTrue(disclosure.waitForExistence(timeout: 20))
+        disclosure.click()
+        for (tab, listName) in [("machines", "Machines"), ("models", "Models")] {
+            let row = app.buttons["sidebar-\(tab)"]
+            XCTAssertTrue(row.waitForExistence(timeout: 10))
+            row.click()
+            XCTAssertTrue(app.outlines[listName].waitForExistence(timeout: 10), listName)
+        }
+    }
+
+    @MainActor
     func testRegistryAndSystemLogSettings() throws {
         let app = launchedApp()
         let settings = app.buttons["sidebar-settings"]
@@ -203,8 +504,18 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(registries.waitForExistence(timeout: 10))
         registries.click()
         XCTAssertTrue(app.windows["Registries"].waitForExistence(timeout: 10))
-        app.buttons["System Logs"].click()
-        XCTAssertTrue(app.windows["System Logs"].waitForExistence(timeout: 10))
+
+        // System Logs is a main-window destination, not a Settings pane.
+        app.typeKey(",", modifierFlags: .command)
+        let advanced = app.buttons["sidebar-advanced"]
+        XCTAssertTrue(advanced.waitForExistence(timeout: 10))
+        if (advanced.value as? String) == "Collapsed" {
+            advanced.click()
+        }
+        let systemLogs = app.buttons["sidebar-systemLogs"]
+        XCTAssertTrue(systemLogs.waitForExistence(timeout: 10))
+        systemLogs.click()
+        XCTAssertTrue(app.staticTexts["Coming Soon"].waitForExistence(timeout: 10))
     }
 
     /// The "#54 class" of bug: the app is up but everything is broken/empty — invisible to
@@ -238,7 +549,12 @@ final class OrchardUITests: XCTestCase {
     func testPublishedPortsAndUptimeAreVisible() throws {
         let app = launchedApp()
         openContainersTab(app)
-        XCTAssertTrue(app.descendants(matching: .any)["container-uptime-uitest-web"].waitForExistence(timeout: 10))
+        let uptime = app.descendants(matching: .any)["container-uptime-uitest-web"]
+        XCTAssertTrue(uptime.waitForExistence(timeout: 10))
+        XCTAssertGreaterThanOrEqual(uptime.frame.width, 75, "The uptime value should remain readable in the Containers list")
+        let stoppedUptime = app.descendants(matching: .any)["container-uptime-uitest-db"]
+        XCTAssertTrue(stoppedUptime.waitForExistence(timeout: 10))
+        XCTAssertEqual(stoppedUptime.value as? String, "Not running", "Stopped containers should not use an unexplained dash for uptime")
         XCTAssertTrue(app.descendants(matching: .any)["open-port-127.0.0.1|8080|80|tcp"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["open-port-::1|9090|90|tcp"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["open-port-127.0.0.1|5353|53|udp"].exists)
@@ -333,18 +649,48 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(more.waitForExistence(timeout: 10))
         XCTAssertFalse(sheet.buttons["container-add-mount"].exists)
         more.click()
+        XCTAssertTrue(sheet.textFields["CPUs"].exists)
+        XCTAssertTrue(sheet.textFields["Memory in GB"].exists)
         let addMount = sheet.buttons["container-add-mount"]
         for _ in 0..<8 where !(addMount.exists && addMount.isHittable) {
             scroll.scroll(byDeltaX: 0, deltaY: -180)
         }
         XCTAssertTrue(addMount.waitForExistence(timeout: 10))
         addMount.click()
+        XCTAssertTrue(sheet.textFields["Host path"].waitForExistence(timeout: 10))
+        XCTAssertTrue(sheet.textFields["Container path"].exists)
         let note = sheet.descendants(matching: .any)["host-mount-security-note"]
         for _ in 0..<5 where !(note.exists && note.isHittable) {
             scroll.scroll(byDeltaX: 0, deltaY: -120)
         }
         XCTAssertTrue(note.waitForExistence(timeout: 10))
         XCTAssertTrue(sheet.descendants(matching: .any)["mount-read-only"].exists)
+        XCTAssertTrue(sheet.buttons["Remove mount"].exists)
+    }
+
+    @MainActor
+    func testContainerMappingControlsHaveAccessibleNames() throws {
+        let app = launchedApp()
+        let run = app.buttons["toolbar-run-container"]
+        XCTAssertTrue(run.waitForExistence(timeout: 20))
+        run.click()
+        let sheet = app.sheets.firstMatch
+        XCTAssertTrue(sheet.waitForExistence(timeout: 10))
+        sheet.buttons["container-add-port"].click()
+        XCTAssertTrue(sheet.textFields["Host port"].waitForExistence(timeout: 10))
+        XCTAssertTrue(sheet.textFields["Container port"].exists)
+        XCTAssertTrue(sheet.popUpButtons["Port protocol"].exists)
+        XCTAssertTrue(sheet.buttons["Remove port mapping"].exists)
+        let addEnvironment = sheet.buttons["container-add-environment"]
+        let scroll = sheet.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.65))
+        for _ in 0..<8 where !addEnvironment.isHittable {
+            scroll.scroll(byDeltaX: 0, deltaY: -180)
+        }
+        XCTAssertTrue(addEnvironment.waitForExistence(timeout: 10))
+        addEnvironment.click()
+        XCTAssertTrue(sheet.textFields["Environment variable name"].waitForExistence(timeout: 10))
+        XCTAssertTrue(sheet.textFields["Environment variable value"].exists)
+        XCTAssertTrue(sheet.buttons["Remove environment variable"].exists)
     }
 
     @MainActor
@@ -397,6 +743,9 @@ final class OrchardUITests: XCTestCase {
         app.staticTexts["uitest-db"].firstMatch.click()
         let edit = app.buttons["Edit Configuration"]
         XCTAssertTrue(edit.waitForExistence(timeout: 10))
+        let actions = app.scrollViews["Container actions"]
+        XCTAssertTrue(actions.waitForExistence(timeout: 10))
+        XCTAssertTrue(actions.frame.intersects(edit.frame), "Edit Configuration should be visible in the container actions strip")
         edit.click()
         let sheet = app.sheets.firstMatch
         XCTAssertTrue(sheet.waitForExistence(timeout: 10))
@@ -468,6 +817,17 @@ final class OrchardUITests: XCTestCase {
         add.click()
         let dryRun = app.buttons["compose-dry-run"]
         XCTAssertTrue(dryRun.waitForExistence(timeout: 20))
+        let actions = app.scrollViews["Compose project actions"]
+        XCTAssertTrue(actions.waitForExistence(timeout: 10))
+        if !actions.frame.contains(dryRun.frame) {
+            let start = actions.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5))
+            let end = actions.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5))
+            start.press(forDuration: 0.1, thenDragTo: end)
+        }
+        XCTAssertTrue(
+            dryRun.isHittable,
+            "Dry Run should be reachable from the Compose project actions strip after scrolling; strip=\(actions.frame), button=\(dryRun.frame)"
+        )
         dryRun.click()
         XCTAssertTrue(app.descendants(matching: .any)["compose-plan-operation-0"].waitForExistence(timeout: 20))
         app.buttons["Done"].click()
@@ -488,6 +848,7 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(remove.waitForExistence(timeout: 20))
         for _ in 0..<20 where !remove.isEnabled { sleep(1) }
         XCTAssertTrue(remove.isEnabled)
+        XCTAssertTrue(remove.isHittable, "Remove Volumes should be reachable in the Compose project actions strip")
         remove.click()
         let cancel = app.buttons["Cancel"]
         XCTAssertTrue(cancel.waitForExistence(timeout: 20))
@@ -526,6 +887,9 @@ final class OrchardUITests: XCTestCase {
         field.click()
         field.typeText("nginx:latest")
         app.buttons["Pull"].click()
+        XCTAssertTrue(app.staticTexts[
+            "Pull failed: The registry refused this image. Check its name and repository access, then retry."
+        ].waitForExistence(timeout: 10))
         let retry = app.sheets.firstMatch.buttons["image-pull-retry"]
         XCTAssertTrue(retry.waitForExistence(timeout: 10))
         retry.click()
@@ -553,6 +917,8 @@ final class OrchardUITests: XCTestCase {
         app.typeKey("l", modifierFlags: .command)
         let filter = app.textFields["logs-filter"].firstMatch
         XCTAssertTrue(filter.waitForExistence(timeout: 20))
+        XCTAssertEqual(filter.label, "Filter logs")
+        XCTAssertTrue(app.popUpButtons["Log source"].exists)
         app.typeKey("f", modifierFlags: .command)
         app.typeText("second")
         XCTAssertEqual(filter.value as? String, "second")
@@ -574,6 +940,7 @@ final class OrchardUITests: XCTestCase {
         open.click()
         let input = app.textFields["run-command-input"]
         XCTAssertTrue(input.waitForExistence(timeout: 10))
+        XCTAssertEqual(input.label, "Command and arguments")
         input.click()
         input.typeText("echo 'hello world'")
         app.buttons["run-command-submit"].click()
@@ -644,6 +1011,20 @@ final class OrchardUITests: XCTestCase {
         menu.click()
         XCTAssertFalse(app.menuItems["Check for Updates…"].exists)
         app.typeKey(XCUIKeyboardKey.escape, modifierFlags: [])
+    }
+
+    @MainActor
+    func testAcknowledgementsAreReadable() throws {
+        let app = launchedApp()
+        let settings = app.buttons["sidebar-settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 20))
+        settings.click()
+        let tab = app.buttons["Acknowledgements"]
+        XCTAssertTrue(tab.waitForExistence(timeout: 10))
+        tab.click()
+        let notices = app.textViews["acknowledgements-notices"]
+        XCTAssertTrue(notices.waitForExistence(timeout: 20))
+        XCTAssertTrue((notices.value as? String ?? "").contains("Andrew Waters"))
     }
 
 }

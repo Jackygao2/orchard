@@ -5,12 +5,14 @@ import SwiftUI
 /// memory so the value is always a valid number within the host's capacity.
 struct NumericStepperField: View {
     @Binding var value: Int
+    let accessibilityName: String
     let range: ClosedRange<Int>
     var unit: String? = nil
 
     var body: some View {
         HStack(spacing: 8) {
             TextField("", value: $value, format: .number)
+                .accessibilityLabel(accessibilityName)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 72)
                 .multilineTextAlignment(.trailing)
@@ -23,6 +25,7 @@ struct NumericStepperField: View {
             }
             Stepper("", value: $value, in: range)
                 .labelsHidden()
+                .accessibilityLabel("\(accessibilityName) adjustment")
         }
     }
 }

@@ -40,10 +40,10 @@ struct EditMachineView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     HStack(alignment: .top, spacing: 16) {
                         field(title: "CPUs") {
-                            NumericStepperField(value: $cpus, range: 1...max(hostCores, cpus))
+                            NumericStepperField(value: $cpus, accessibilityName: "CPUs", range: 1...max(hostCores, cpus))
                         }
                         field(title: "Memory (GB)") {
-                            NumericStepperField(value: $memoryGiB, range: 1...max(hostGiB, memoryGiB), unit: "GB")
+                            NumericStepperField(value: $memoryGiB, accessibilityName: "Memory in GB", range: 1...max(hostGiB, memoryGiB), unit: "GB")
                         }
                     }
 

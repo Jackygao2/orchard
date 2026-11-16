@@ -355,6 +355,18 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(diskUsage.frame.contains(reclaimable.frame), "The audit should include fully visible disk tiles")
         try auditCurrentScreen("Overview", matching: ["Zero KB", "for --"])
 
+        let overviewScroll = app.scrollViews["Overview content"]
+        XCTAssertTrue(overviewScroll.waitForExistence(timeout: 10))
+        let systemNetworkValue = app.staticTexts["↓ 0.0 MB/s"]
+        XCTAssertTrue(systemNetworkValue.waitForExistence(timeout: 10))
+        for _ in 0..<5 where !overviewScroll.frame.contains(systemNetworkValue.frame) {
+            overviewScroll.swipeUp()
+        }
+        XCTAssertTrue(overviewScroll.frame.contains(systemNetworkValue.frame), "System chart values should be fully visible before their contrast audit")
+        try auditCurrentScreen("Overview System charts", matching: [
+            "↓ 0.0 MB/s", "↑ 0.0 MB/s", "R 0 KB/s", "W 0 KB/s"
+        ])
+
         openContainersTab(app)
         try auditCurrentScreen("Containers", matching: [
             "497d 2h", "Not running", "2 cores allocated", "Zero KB allocated", "↓ Zero KB", "↑ Zero KB"

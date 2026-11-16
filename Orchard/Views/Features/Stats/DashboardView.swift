@@ -158,6 +158,8 @@ struct DashboardView: View {
                 }
                 .padding(16)
             }
+            .accessibilityLabel("Overview content")
+            .accessibilityIdentifier("overview-scroll-content")
         }
         .onAppear {
             Task {

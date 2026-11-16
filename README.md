@@ -1,342 +1,47 @@
-## Based on Orchard
+# ContainerDesk
 
-ContainerDesk is based on [Orchard](https://github.com/andrew-waters/orchard) by Andrew Waters and contributors. Orchard is distributed under the MIT License; its copyright notice and license are retained in [LICENSE](LICENSE).
+ContainerDesk is a native macOS app for managing containers with Apple's [`container`](https://github.com/apple/container) Runtime. It is built from a fork of [Orchard](https://github.com/andrew-waters/orchard), preserving Orchard's working XPC backend, Compose execution, Runtime installer, logs, terminal launcher and menu bar.
 
-![Banner - Orchard](assets/banner.png)
+> **Development status:** ContainerDesk 1.0 is not a public release. The local DMG built by these scripts is ad-hoc signed, is rejected by Gatekeeper and is not notarized. Do not distribute it as a release build.
 
-[![GitHub stars](https://img.shields.io/github/stars/andrew-waters/orchard?color=e8590c&label=stars)](https://github.com/andrew-waters/orchard/stargazers)
-[![Downloads](https://img.shields.io/github/downloads/andrew-waters/orchard/total?color=e8590c&label=downloads)](https://github.com/andrew-waters/orchard/releases)
-[![Homebrew installs](https://img.shields.io/homebrew/cask/installs/dm/orchard?color=e8590c&label=homebrew%20installs)](https://formulae.brew.sh/cask/orchard)
-[![Homebrew cask version](https://img.shields.io/homebrew/cask/v/orchard?color=e8590c&label=homebrew)](https://formulae.brew.sh/cask/orchard)
-[![License: MIT](https://img.shields.io/github/license/andrew-waters/orchard?color=e8590c)](LICENSE)
-[![CI](https://github.com/andrew-waters/orchard/actions/workflows/ci.yml/badge.svg)](https://github.com/andrew-waters/orchard/actions/workflows/ci.yml)
-[![Services coverage](https://img.shields.io/endpoint?url=https%3A%2F%2Forchard.andon.dev%2Fcoverage-badge.json)](https://github.com/andrew-waters/orchard/actions/workflows/ci.yml)
+## What it does
 
-```bash
-brew install orchard
-```
+ContainerDesk groups the inherited Orchard workflows around the tasks developers use most:
 
-[See all install options](#installation)
+- Overview and container inspection, creation and lifecycle actions.
+- Image pulls and builds.
+- Volumes and host mounts.
+- Networks and DNS.
+- Container logs and Compose projects.
+- Onboarding and Runtime settings.
 
----
+Compose parsing and planning use the linked `andrew-waters/compose` Swift package. Compose support is not a promise of full Docker Compose compatibility: ContainerDesk reports unsupported settings and asks the user to review them before running a project. The optional `container compose` plugin is not required by the app.
 
-Orchard is a native (Swift) macOS application for managing containers, machines and local AI models using Apple's [container](https://github.com/apple/container) tooling.
+Orchard's machines, Kubernetes clusters, AI models and sandboxes remain in the Advanced section. They are retained functionality, outside the current 1.0 acceptance scope.
 
-It gives you a desktop experience that complements the `container` command-line interface.
+## Runtime and platform
 
-Thousands of installations and starred by engineers from Apple, Microsoft, NVIDIA, IBM, Stripe, Cisco, LinkedIn, Uber, Vercel & more - [see who's adopting Orchard](#adoption)  
-
----
-
-- [Local AI & Sandboxes](#local-ai--sandboxes)
-- [Container Machines](#container-machines)
-- [Kubernetes Clusters](#kubernetes-clusters)
-- [Compose Projects](#compose-projects)
-  - [The compose plugin](#the-compose-plugin)
-- [Benefits of Apple Containers](#benefits-of-apple-containers)
-- [Orchard Features](#orchard-features)
-- [How Orchard compares](#how-orchard-compares)
-- [Requirements](#requirements)
-- [Architecture](#architecture)
-- [Installation](#installation)
-  - [Homebrew](#homebrew)
-  - [Release download](#release-download)
-  - [Build from Source](#build-from-source)
-- [Adoption](#adoption)
-- [Star History](#star-history)
-- [License](#license)
-
-![Dashboard - system-wide resource usage across every container](site/assets/screens/dashboard.png)
-
-## Local AI & Sandboxes
-
-Orchard wires **local MLX models** into Apple containers. Inference runs on your Mac's GPU (container VMs have no GPU access) and containers reach it with no hand-configured networking.
-
-![A sandboxed agent in Orchard - Isolated badge, model endpoint, and chat, terminal and stop controls](site/assets/screens/sandboxes.png)
-
-- Discover model servers already on your Mac (Ollama, LM Studio, MLX servers), or start and stop `mlx_lm.server` instances from the app - with process supervision, crash surfacing and logs
-- The container↔model bridge: Orchard computes the container-reachable endpoint from the network gateway and injects `OPENAI_BASE_URL` at create time, so containerised apps just use the OpenAI SDK
-- **Sandboxes**: a first-class view of isolated workloads, with or without a model - how each is contained (network mode, mounts read-only or read-write, tmpfs masks, CPU and memory), who manages it, chat when it has a model, terminal access and a kill-switch. Run an agent behind a hypervisor boundary with a local endpoint instead of an API key it could leak
-- An in-app chat tester to verify any model server without leaving the app
-
-Any app can make a sandbox Orchard shows by labelling the container:
-
-| Label | Meaning |
-|---|---|
-| `com.orchard.sandbox=true` | A sandbox: an isolated workload. The label alone is enough. |
-| `com.orchard.sandbox.owner` | The app that made it and manages its lifecycle, such as `dev.andon.gannin`. Orchard stamps `dev.andon.orchard`; absent also means Orchard's own. |
-| `com.orchard.sandbox.network` | `nat`, `host-only` or `allowlist`. What Orchard sees of the network wins: a container on a host-only network shows as host-only, and a `host-only` label on a network with internet access shows as NAT. The label decides alone only when Orchard doesn't know the network. |
-| `com.orchard.model.endpoint` | Optional: the model endpoint it's wired to. |
-
-A sandbox another app manages, such as a Gannin session, is badged with that app, and Orchard asks before stopping, removing or editing it (an edit recreates the container) from anywhere in the app. Containers with `OPENAI_BASE_URL`, `OLLAMA_HOST` or `ANTHROPIC_BASE_URL` in their environment are still detected as sandboxes.
-
-See the [Local AI guide](https://orchard.andon.dev/ai.html) for a full walkthrough and a runnable quick start.
-
-## Container Machines
-
-Orchard manages Apple **container machines** natively: persistent, stateful Linux VMs you can create, configure, run and monitor without leaving the app or dropping to the CLI.
-
-![Container machine detail with live resource usage](site/assets/screens/machines.png)
-
-- Create machines from any init-capable image, with CPU, memory, home-mount, nested-virtualization and custom-kernel options
-- Choose the machine's account (user, UID, GID and Linux home) when you create it, on Apple container 1.6.0 or later; it defaults to your Mac user
-- Start, stop, set-default and delete, plus a one-click stop / apply / restart configuration editor
-- Live CPU, memory, network and disk usage, in the machine view and on the dashboard
-- Output and boot logs in the same multi-pane log viewer as containers
-- Guardrails that warn before creating from an image with no init system, and explain a machine that stopped because of it
-
-Machines are driven over Apple's native XPC API (`MachineAPIClient`), not by shelling out. See the [Container Machines guide](https://orchard.andon.dev/machines.html) for a full walkthrough and the pitfalls to avoid.
-
-A machine trades away much of a container's isolation, so only create one from an image you trust. By default your Mac home folder is mounted read/write at the same path, and the machine's account has passwordless sudo, so anything running in the machine, root included, can change your files with your permissions. Choose a read-only home mount, or none, when you don't need it.
-
-## Kubernetes Clusters
-
-Orchard manages **local Kubernetes clusters** built on Apple container's cluster plugin (container 1.2.2+, named `k8s` before 1.6.1): cluster nodes are grouped, inspectable and one click from a working `kubectl`.
-
-![A local Kubernetes cluster in Orchard - nodes table with role, IP and resources, and one-click kubectl access](site/assets/screens/clusters.png)
-
-- Node containers are grouped into named clusters, with per-node role, status, IP, CPUs, memory and published ports. Expand a cluster in the list to see its nodes and open any of them
-- Create clusters from the app, choosing the Kubernetes version, resource overrides, worker nodes (container 1.6.0+) sized apart from the control plane (container 1.7.1+) and the CNI: kindnet, your own manifest, or none at all (container 1.6.0+) for installing Cilium, Calico or similar yourself. A cluster with no CNI shows as waiting for one until its nodes are Ready
-- On container 1.7 and later, create a cluster with **Use local images** (on by default) so its nodes pull from the Mac's image store, and pods run images built or pulled in Orchard without a registry. On container 1.6.x, load any local image into the cluster's containerd instead, on every node or only the ones you pick
-- Cluster nodes are stopped and deleted with their cluster, never on their own, since acting on one node breaks the cluster
-- Write or merge the cluster's context into your kubeconfig, copy its path, or open a terminal with the kubectl context already selected
-- Cluster nodes are badged in the containers list ("cluster · control-plane"), and container and cluster views cross-link both ways
-- Clusters made before container 1.6.1 renamed the plugin still show after upgrading, and can be deleted or recreated under the new plugin
-- Installs without the cluster plugin get an explanatory state with upgrade guidance
-
-Deploying workloads stays with the tools you know - kubectl, k9s, Lens - Orchard hands you a configured context and gets out of the way. See the [Clusters guide](https://orchard.andon.dev/clusters.html) for a walkthrough.
-
-## Compose Projects
-
-Orchard runs **compose projects** on Apple's container runtime: point it at a `compose.yaml` and bring the whole stack up in dependency order, or take it down again.
-
-![A compose project in Orchard - services with their IP addresses and hostnames, and the network the project created](site/assets/screens/compose.png)
-
-- Projects are found by the labels on their containers, not by a file Orchard keeps, so a stack you brought up in the terminal appears in the app without being imported
-- A second `up` compares each service against a hash stamped on the container it produced, then creates, starts, leaves alone, recreates or removes each one accordingly, listing every step as it happens
-- Each service shows its container, IP address and hostname, alongside the networks the project created
-- Named and anonymous volumes are created and mounted, and listed with the project. **Down** keeps them for the next `up` unless you choose **Remove Volumes**, so a database keeps its data
-- A service that builds goes through the same path as the Images tab, so its BuildKit log turns up under Builds like any other build
-
-![The Problems tab of a compose project, listing unhandled keys grouped by whether the runtime makes them impossible or they are not built yet](site/assets/screens/compose-problems.png)
-
-Nothing in your file is quietly dropped. Anything that cannot be honoured is listed before the first run, split into what the runtime makes impossible and what simply is not built yet, each with the line it sits on. The project goes on showing that afterwards, and a file that grows a new unhandled key is put back in front of you before the next `up` rather than waved through on an older answer.
-
-### The compose plugin
-
-The planning behind the tab is [compose](https://compose.andon.dev), a standalone open-source Swift package that also backs the `container compose` CLI plugin, so the terminal and the window cannot drift apart:
-
-```bash
-container compose up
-```
-
-Orchard links the package directly and runs the resulting plans over XPC, so it never needs the plugin installed. The Compose tab offers to install it anyway, because container's own installer clears the plugin directory on every upgrade: installing fetches the latest release, unpacks it and puts the files where the CLI looks, showing each step before it asks for an administrator password.
-
-Once it is installed, the tab shows the plugin's version along the bottom and offers **Update** when a newer release is out, or when the plugin is older than the compose package Orchard links (in which case the terminal may not handle a file the way the window does, and the offer stands even offline). Updating uses the same install flow. Orchard looks for a release once each time the tab is opened, and a lookup that fails counts as unknown, so it never prompts an update on its own.
-
-There is no Orchard-specific logic in the package, so other tools can build on it too. See [compose.andon.dev](https://compose.andon.dev) for the syntax it supports, install instructions and the current state of coverage.
-
-Two limitations are worth stating up front: without health reporting in the runtime, `up` starts dependencies before dependents but does not wait for them to become ready, and hostnames have to be unique across every container on the machine, so a service answers to `<project>-<service>` rather than to its service name.
-
-## Benefits of Apple Containers
-
-- Native support, incredible performance and the engineering resources to make it work.
-- Sub second startup times
-- Kernel isolation by design
-- Easier networking - no more port mapping (every container gets its own IP address), networks out of the box
-
-## Orchard Features
-
-- Command palette: press Cmd+K to fuzzy-search everything Orchard manages, jump to any resource, or run actions from the keyboard - "stop db", "logs api", "console web", "commit web"
-- Local AI: discover or run MLX model servers, bridge containers to them, and manage agent sandboxes with isolation badges and a kill-switch
-- Container machines: create, configure, run and monitor persistent Linux VMs over native XPC
-- Kubernetes clusters: create and manage local k8s clusters (container's cluster plugin), run local images in them, and get one-click kubectl access
-- Compose projects: bring a set of services up and down from a compose file, in dependency order, with a second `up` working out what changed from the containers themselves. Anything the file asks for that cannot be honoured is listed before the first run, with the line it sits on, and stays listed on the project afterwards, all of it planned by the open-source [compose](https://compose.andon.dev) package that also backs the `container compose` CLI plugin
-- Container management: create, start, stop, force stop, delete, export as tar, commit to an image (container 1.6.0+), reclaim disk space (pending a container release that can trim a container's root filesystem), label at launch, group by label
-- Platforms: run an image as any platform it offers, so a `linux/amd64`-only image runs on Apple silicon under Rosetta. Automatic picks the Mac's own platform when the image has it, as `container run` does; the choice survives edits and recreates, a compose service's `platform:` is honoured, and Orchard offers to install Rosetta when it is missing
-- Image management: pull with live byte/blob progress, delete, search Docker Hub
-- Volumes: a Volumes tab lists every named and anonymous volume with its size, format, labels and the containers that mount it. Create one with an optional size and labels, delete the ones nothing mounts, or **Prune Volumes** to choose unused ones to remove. Run and Edit mount a host folder, a volume (picked, or created on the spot) or a tmpfs in each mount row
-- Disk space: usage by containers, images, volumes and the runtime's own system data on the dashboard, and **Free Up Space** to remove images no container uses, and (when turned on) stopped containers and unmounted volumes, with sizes shown and a confirmation before anything goes. Machines, cluster nodes, compose services, sandboxes and compose volumes are never listed
-- Image builds: build from any Dockerfile with a streamed BuildKit log, tracked in a Builds tab whose records survive restarts and cross-link to their images and containers
-- Deep links: `orchard://` URLs jump to any tab or resource
-- Network and DNS domain management, with DNS aliases on a container's network (`api.test`, or `*.gateway.test` for every name below one) on container 1.6.0 or later. Containers follow the `[container.dns]` defaults in container's `config.toml` as `container run` does, and Settings shows them
-- Real-time container stats with sortable columns
-- Sortable container and image lists with persistent preferences
-- Multi-container log viewer with split panes, filtering, and per-container colour coding
-- Container log viewer with search highlighting
-- Builder, kernel and system property management
-- Menu bar integration
-
-![Command palette - fuzzy search across every resource, with keyboard-reachable actions](site/assets/screens/palette.png)
-
-Press Cmd+K anywhere and type: results rank with real fuzzy matching across containers, images, mounts, volumes, machines, k8s clusters, AI models, sandboxes, DNS domains and networks. Verbs work too - "stop db" stops the container, "logs api" opens the log viewer, "console web" drops you into a shell - and the actions section covers running containers, pulling images, and starting or stopping the container system itself.
-
-![Orchard container detail - CPU, memory, network, and disk over time](site/assets/screens/containers.png)
-
-Per-container detail with CPU, memory, network and disk over time, cross-links to the cluster or sandbox a container belongs to, and one-click terminal and log access. (The system-wide dashboard above is the default view when the app opens, summing usage across every container with headline disk-usage tiles and live sparklines.)
-
-![image management](site/assets/screens/images.png)
-
-Browse, pull, and delete container images. Search Docker Hub directly from the app - pulls show live download progress with byte and blob counts - and inspect image metadata without dropping to the CLI.
-
-![Builds - a completed image build with its streamed log and the containers running it](site/assets/screens/builds.png)
-
-Build images from any Dockerfile (the hammer on the Images tab, or `+` on Builds): pick the file, name the image, choose arm64 or amd64, and watch the BuildKit log stream live. Every build Orchard starts is recorded in the Builds tab - records and logs survive restarts - with cancel for in-flight builds, and a completed build cross-links both ways: launch the image, jump to it in Images, or click straight through to the containers running it. Builds run concurrently, and closing the sheet never kills one.
-
-### Deep links
-
-Orchard registers the `orchard://` URL scheme, so scripts, docs, and other tools can link straight into the app:
-
-| URL | Opens |
-|---|---|
-| `orchard://<tab>` | Any sidebar tab, e.g. `orchard://dashboard`, `orchard://builds` |
-| `orchard://container/<id>` | A container's detail |
-| `orchard://image/<reference>` | An image (slashes in the reference are fine: `orchard://image/docker.io/library/nginx:latest`) |
-| `orchard://machine/<id>` | A container machine |
-| `orchard://mount/<id>` | A mount |
-| `orchard://dns/<domain>` | A DNS domain |
-| `orchard://network/<id>` | A network |
-| `orchard://volume/<name>` | A volume |
-
-A resource link whose target is still loading selects it as soon as it appears, and a noun without an identifier (`orchard://container`) falls back to its tab. Try it: `open orchard://builds`.
-
-![container logs](site/assets/screens/logs.png)
-
-Stream logs from multiple containers side by side. Split panes, filter by text, and use per-container colour coding to keep output readable when debugging across services.
-
-![networks and DNS](site/assets/screens/networks.png)
-
-Manage networks and DNS domains without touching the CLI - see every container's IP address and hostname at a glance, set the default DNS domain, and create or remove domains and networks. A domain can also point at your Mac's localhost, so containers reach services running on the host by name.
-
-With Apple container 1.6.0 or later, a container can answer to more names than its own. Add DNS aliases when running or editing it: with the DNS domain `test`, `api` makes it answer to `api.test`, and `.gateway` to every name below `gateway.test`. The container's hostname takes the domain too (`gateway.test`), as `container run` gives it. Aliases show next to the hostname in the container's detail and in the Networks view, and Cmd+K finds a container by them. Exact aliases are unique across all containers, and a subtree alias must sit below the container's own name or one of its aliases; the runtime checks these, and Orchard shows what it says.
-
-![menu bar](site/assets/screens/menubar.png)
-
-Keep an eye on things from the menu bar: CPU and memory usage rings across all running containers, a per-container list with start/stop controls, and one-click access back to the app.
-
-## How Orchard compares
-
-Orchard isn't the only way to work with Apple's `container` runtime:
-
-| Capability | Orchard | Podman Desktop | `container` CLI |
-| :-- | :--: | :--: | :--: |
-| Purpose-built for `apple/container` | ✅ | ➖ <sup>1</sup> | ✅ |
-| Native macOS app | ✅ <sup>2</sup> | ❌ <sup>3</sup> | ❌ |
-| Native XPC integration (no CLI shelling) | ✅ | ❌ <sup>4</sup> | ✅ |
-| Container machines (native XPC) | ✅ | ❌ | ✅ |
-| Kubernetes clusters on `apple/container` | ✅ | ❌ | ✅ |
-| Compose projects on `apple/container` | ✅ | ❌ <sup>10</sup> | ➖ <sup>11</sup> |
-| Local AI models & agent sandboxes | ✅ | ❌ | ❌ |
-| Command palette (fuzzy search + actions) | ✅ | ➖ <sup>9</sup> | ❌ |
-| Signed & notarized | ✅ | ✅ | ✅ |
-| Multi-pane log viewer | ✅ | ➖ | ➖ <sup>5</sup> |
-| Live container stats (CPU/mem/net/disk) | ✅ | ✅ | ➖ |
-| Network, DNS & builder management | ✅ | ➖ | ✅ |
-| Focused, lightweight footprint | ✅ | ❌ <sup>6</sup> | ✅ |
-| Open source | ✅ <sup>7</sup> | ✅ <sup>8</sup> | ✅ <sup>8</sup> |
-
-<sup>✅ full support · ➖ partial or indirect · ❌ not available</sup>
-
-1. Supported through a community extension, not natively.
-2. Native Swift / SwiftUI.
-3. Built on Electron.
-4. Talks to a Docker-API shim rather than the native XPC API.
-5. Terminal output only - no multi-pane viewer.
-6. General-purpose, multi-runtime tool.
-7. MIT licensed.
-8. Apache-2.0 licensed.
-9. The F1 command palette covers commands and navigation; no fuzzy resource search with per-resource actions.
-10. Its compose support runs through Podman, not `apple/container`.
-11. Through the community [`compose`](https://compose.andon.dev) plugin, which Orchard links as a package rather than shelling out to.
-
-Orchard is the **native, purpose-built** choice: a lightweight Swift app focused solely on giving Apple's `container` a first-class desktop experience, rather than a heavyweight cross-platform tool that supports it as one runtime among many. (Note: OrbStack and Docker Desktop are separate container runtimes and don't manage `apple/container` - see [Choosing a runtime](#choosing-a-runtime) below.)
-
-Being native goes beyond the UI: Orchard talks to the container daemon over the same typed XPC API the `container` CLI uses internally, rather than spawning the CLI and parsing its output. That means structured data instead of screen-scraping (no breakage when CLI wording changes), no child processes on every refresh, real log streams feeding the multi-pane viewer, and typed errors instead of exit codes.
-
-### Choosing a runtime
-
-The table above compares apps that manage Apple's `container` runtime. OrbStack and Docker Desktop are a different decision: they're separate container runtimes with their own apps. If you're choosing a stack rather than a frontend:
-
-| | Orchard + `apple/container` | OrbStack | Docker Desktop |
-| :-- | :--: | :--: | :--: |
-| Isolation model | VM per container | Shared VM & kernel <sup>1</sup> | Shared VM & kernel |
-| Built on Apple's Virtualization.framework | ✅ | ➖ <sup>2</sup> | ❌ |
-| Native macOS app | ✅ | ✅ | ❌ <sup>3</sup> |
-| Docker API & ecosystem compatibility | ➖ <sup>4</sup> | ✅ | ✅ |
-| Kubernetes | ✅ multi-node <sup>5</sup> | ➖ single-node | ➖ single-node |
-| Local AI models & agent sandboxes | ✅ | ❌ | ➖ <sup>6</sup> |
-| Free for commercial use | ✅ | ❌ <sup>7</sup> | ➖ <sup>8</sup> |
-| Open source | ✅ MIT + Apache-2.0 | ❌ <sup>9</sup> | ➖ <sup>10</sup> |
-
-1. All containers share one Linux VM and kernel; OrbStack's docs note its isolated machines are "not a substitute for a full VM against actively malicious code."
-2. Native Swift app, but on a custom proprietary virtualization stack.
-3. The Docker Desktop dashboard is built on Electron.
-4. Runs standard OCI images; does not expose a Docker-compatible API socket.
-5. Experimental, via the `container cluster` plugin (`container k8s` before 1.6.1) (control plane + workers).
-6. Docker Model Runner runs local models; no agent-sandbox workflow.
-7. Free for personal, non-commercial use; commercial use requires Pro ($8/user/month).
-8. Free only for personal use, education, and companies under 250 employees **and** $10M annual revenue.
-9. Closed-source core with some open-source components.
-10. Engine, CLI, and Compose are Apache-2.0; Docker Desktop itself is proprietary.
-
-Different trade-offs, honestly stated: OrbStack and Docker Desktop win on Docker ecosystem compatibility today. Orchard's stack wins on isolation, openness, and being built the way Apple builds things.
-
-## Requirements
-
-- macOS 26 (Tahoe)
-- Xcode 26 / Swift 6.2 (for building from source)
-- [Apple container](https://github.com/apple/container) 1.7.1 installed - [follow the instructions here](https://github.com/apple/container?tab=readme-ov-file#install-or-upgrade). If it is missing, Orchard says so and offers to install it for you: it downloads Apple's signed 1.7.1 package, checks the signature, installs it behind an administrator prompt and starts the system with the default kernel
-
-## Architecture
-
-Orchard communicates with the container daemon primarily through the `ContainerAPIClient` Swift library (from [apple/container](https://github.com/apple/container)) over XPC - typed Swift APIs for containers, images, networks, stats, logs, and system health, with no CLI process spawning or output parsing on this path. Every operation the API exposes goes over XPC; the remaining CLI-backed operations are the exceptions noted below.
-
-A small number of operations still use the `container` CLI via `Foundation.Process`, each for a structural reason rather than convenience: system start/stop/restart (the daemon is registered with launchd - there is nothing to XPC to until it's running), builder lifecycle (the API exposes no builder surface; the CLI orchestrates it client-side), system properties (a local defaults store, not an API), DNS domain create/delete (requires root, so it runs the CLI under administrator privileges), and kernel selection (installing the recommended kernel provisions it - an operation the API doesn't expose as a single call).
+- Apple silicon (`arm64`) only.
+- The app is linked to Apple's `container` Runtime 1.7.1. Apple `container` is the only Runtime; ContainerDesk does not use Docker Desktop, OrbStack or another engine.
+- Onboarding can offer Apple's signed Runtime installer. ContainerDesk asks before the first System start and remembers the choice. Quitting the app does not stop workloads.
+- Compose works in ContainerDesk without a CLI plugin. The optional community plugin is separately verified before installation for `container compose` terminal commands.
+- The Release build sets `LSMinimumSystemVersion` to macOS 26.0. That build setting is not a support guarantee: no macOS version has completed the full ContainerDesk release acceptance matrix. The T-D5 build and unit-test run was performed on macOS 27.2.1 and did not complete that matrix.
+- In-app update checks are disabled for 1.0.
 
 ## Installation
 
-You can install Orchard via homebrew or via a prebuilt release package. You can also download the source and build it yourself!
+There is no public ContainerDesk release or notarized download yet. To build a local development copy, follow [docs/BUILDING.md](docs/BUILDING.md). The generated DMG can be opened and dragged into Applications for local testing, but its ad-hoc signature is not accepted by Gatekeeper.
 
-> Every release is **code-signed with a registered Apple Developer ID and notarized by Apple**, so it installs and launches cleanly with no Gatekeeper "unidentified developer" warning.
+## Limitations
 
-### Homebrew
+- ContainerDesk manages Apple's `container` Runtime; it is not a Docker-compatible engine.
+- Compose features unsupported by the linked Compose package are listed for review; they are not silently translated or ignored.
+- Advanced Orchard destinations are retained but are not part of the completed 1.0 acceptance run.
+- A locally built unsigned/ad-hoc DMG is for development only. Developer ID signing, notarization and the release verification environment remain release blockers.
+- `THIRD_PARTY_NOTICES.md` is an initial notice. Its dependency-license inventory must be complete before distribution.
 
-```bash
-brew install orchard
-```
+See [docs/RELEASING.md](docs/RELEASING.md) for the current release gates and the distinction between a local artifact and a publishable release.
 
-### Release download
+## Credit and license
 
-1. Download the latest release from [GitHub Releases](https://github.com/andrew-waters/orchard/releases)
-2. Open the `.dmg` file and drag Orchard to your Applications folder
-3. Launch Orchard from the Apps directory
-
-### Build from Source
-
-```bash
-git clone https://github.com/andrew-waters/orchard.git
-cd orchard
-open Orchard.xcodeproj
-```
-
-The project uses Swift Package Manager for dependencies. Xcode will resolve the `apple/container` package automatically on first build.
-
-## Adoption
-
-Orchard is installed hundreds of times a month via Homebrew - see the live [install stats](https://formulae.brew.sh/cask/orchard) - and has been starred by engineers from Apple, Microsoft, NVIDIA, IBM, Stripe, Cisco, LinkedIn, Uber, GitHub, Red Hat, SUSE, Amazon, VMware, Siemens, Hitachi, Alibaba, Tencent, MongoDB, Honeycomb, Automattic, Vercel and across the wider cloud-native community.
-
-Using Orchard at your company or in your day-to-day workflow? We'd love to hear about it - add yourself to [`ADOPTERS.md`](ADOPTERS.md) with a quick pull request.
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=andrew-waters%2Forchard&type=date&legend=bottom-right">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=andrew-waters/orchard&type=date&theme=dark&legend=bottom-right&sealed_token=QHFno-cQk7RLm2jSGqr6nMSnR_x3VQtYBnaXOz-HIQbtG8lrwoY7dsfXa1lwdB-ORWpMSKAUn9lQMsOybZS-umz8X_ge0_BWlPUJ86XKnHQLBAav3XE2oMEEALRJXJVQAM0LfY9ChMtnYx7WZqlRgAtMSyGS72iZEa5Nej6XbIuZ-Y-9l4SLBRe7-4-U" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=andrew-waters/orchard&type=date&legend=bottom-right&sealed_token=QHFno-cQk7RLm2jSGqr6nMSnR_x3VQtYBnaXOz-HIQbtG8lrwoY7dsfXa1lwdB-ORWpMSKAUn9lQMsOybZS-umz8X_ge0_BWlPUJ86XKnHQLBAav3XE2oMEEALRJXJVQAM0LfY9ChMtnYx7WZqlRgAtMSyGS72iZEa5Nej6XbIuZ-Y-9l4SLBRe7-4-U" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=andrew-waters/orchard&type=date&legend=bottom-right&sealed_token=QHFno-cQk7RLm2jSGqr6nMSnR_x3VQtYBnaXOz-HIQbtG8lrwoY7dsfXa1lwdB-ORWpMSKAUn9lQMsOybZS-umz8X_ge0_BWlPUJ86XKnHQLBAav3XE2oMEEALRJXJVQAM0LfY9ChMtnYx7WZqlRgAtMSyGS72iZEa5Nej6XbIuZ-Y-9l4SLBRe7-4-U" />
- </picture>
-</a>
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+ContainerDesk is based on Orchard by Andrew Waters and contributors. Orchard's MIT license and copyright notice are retained in [LICENSE](LICENSE). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the current dependency notice and its completion status.

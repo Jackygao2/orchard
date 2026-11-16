@@ -1,0 +1,31 @@
+ContainerDesk-1.0.0-arm64.dmg: OK
+Checksumming Protective Master Boot Record (MBR : 0)…
+Protective Master Boot Record (MBR :: verified   CRC32 $BBD5288F
+Checksumming GPT Header (Primary GPT Header : 1)…
+ GPT Header (Primary GPT Header : 1): verified   CRC32 $D79CC0E9
+Checksumming GPT Partition Data (Primary GPT Table : 2)…
+GPT Partition Data (Primary GPT Tabl: verified   CRC32 $3266E513
+Checksumming  (Apple_Free : 3)…
+                    (Apple_Free : 3): verified   CRC32 $00000000
+Checksumming disk image (Apple_APFS : 4)…
+         disk image (Apple_APFS : 4): verified   CRC32 $15105D11
+Checksumming  (Apple_Free : 5)…
+                    (Apple_Free : 5): verified   CRC32 $00000000
+Checksumming GPT Partition Data (Backup GPT Table : 6)…
+GPT Partition Data (Backup GPT Table: verified   CRC32 $3266E513
+Checksumming GPT Header (Backup GPT Header : 7)…
+  GPT Header (Backup GPT Header : 7): verified   CRC32 $18C40F42
+verified   CRC32 $99CF2218
+hdiutil: verify: checksum of "/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/build/ContainerDesk-1.0.0-arm64.dmg" is VALID
+hdiutil: WARNING: 'hdiutil attach -readonly -nobrowse -mountpoint ...' is deprecated. Please use 'diskutil image attach --readOnly --mountOptions nobrowse --mountPoint ...' instead.
+Artifact: /Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/build/ContainerDesk-1.0.0-arm64.dmg
+SHA-256: verified
+Bundle identifier: local.containerdesk
+Minimum macOS: 26.0
+Architecture: arm64
+Applications shortcut: verified
+DMG background: verified
+Code signature: ad-hoc (local development only)
+Hardened runtime: no
+App Gatekeeper assessment: rejected
+Notarization ticket stapled: no

@@ -1,0 +1,126 @@
+2026-11-16 14:08:09.858 xcodebuild[85838:2973330] [MT] IDESchemeActionsInvocationRecord: Device <IDEOSXSupportCore.IDEMacPlaceholder: 0x761fece800 (Any Mac | undefined_arch)> is missing operatingSystemVersion, operatingSystemVersionWithBuildNumber.
+error: the following command failed with exit code 0 but produced no further output
+SwiftCompile normal arm64 (in target 'Orchard' from project 'Orchard')
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Services/ContainerInstallService.swift:92:64: warning: converting non-Sendable function value to '@Sendable (URL, URL) async throws -> Void' may introduce data races
+ 90 |         commandRunner: any CommandRunner = SystemCommandRunner(),
+ 91 |         fileManager: FileManager = .default,
+ 92 |         download: @escaping Download = ContainerInstallService.fetch
+    |                                                                `- warning: converting non-Sendable function value to '@Sendable (URL, URL) async throws -> Void' may introduce data races
+ 93 |     ) {
+ 94 |         self.commandRunner = commandRunner
+
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Services/ComposePluginService.swift:452:64: warning: main actor-isolated static property 'releaseAPI' can not be referenced from a nonisolated context; this is an error in the Swift 6 language mode
+133 | 
+134 |     /// The release this fetches from. Apple silicon only, which is all the runtime runs on.
+135 |     static let releaseAPI = URL(string: "https://api.github.com/repos/andrew-waters/compose/releases/latest")!
+    |                `- note: static property declared here
+136 |     static let assetSuffix = "-macos-arm64.tar.gz"
+137 | 
+    :
+450 | 
+451 |     /// The newest published release, and the asset built for this machine.
+452 |     private func latestRelease(api: URL = ComposePluginService.releaseAPI) async throws -> Release {
+    |                                                                `- warning: main actor-isolated static property 'releaseAPI' can not be referenced from a nonisolated context; this is an error in the Swift 6 language mode
+453 |         var request = URLRequest(url: api)
+454 |         // GitHub refuses API requests that do not identify themselves.
+
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Services/ContainerBackend.swift:816:44: warning: converting non-Sendable function value to '@Sendable ([ProgressUpdateEvent]) async -> Void' may introduce data races
+ 814 |                 reference: reference,
+ 815 |                 containerSystemConfig: try await loadContainerSystemConfig(),
+ 816 |                 progressUpdate: folder.map { folder in { events in folder.handle(events) } }
+     |                                            `- warning: converting non-Sendable function value to '@Sendable ([ProgressUpdateEvent]) async -> Void' may introduce data races
+ 817 |             )
+ 818 |         } catch { throw mapContainerError(error) }
+
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Services/ContainerInstallService.swift:155:116: warning: main actor-isolated static property 'signingTeamID' can not be referenced from a nonisolated context; this is an error in the Swift 6 language mode
+ 71 |     /// Containerization"). The certificate chain alone only proves Apple issued a Developer
+ 72 |     /// ID; the team is what proves the package is Apple's own.
+ 73 |     static let signingTeamID = "UPBK2H6LZM"
+    |                `- note: static property declared here
+ 74 | 
+ 75 |     /// The commands the manual route runs, from a download of `packageName`.
+    :
+153 |         signature=$(/usr/sbin/pkgutil --check-signature "$dir/container.pkg") || signature=""
+154 |         if ! printf '%s\\n' "$signature" | /usr/bin/grep -q 'Status: signed by a developer certificate issued by Apple' \\
+155 |             || ! printf '%s\\n' "$signature" | /usr/bin/grep -Eq '^[[:space:]]*1\\. Developer ID Installer: .*\\(\(signingTeamID)\\)$'; then
+    |                                                                                                                    `- warning: main actor-isolated static property 'signingTeamID' can not be referenced from a nonisolated context; this is an error in the Swift 6 language mode
+156 |             echo '\(untrustedMarker)' >&2
+157 |             exit 3
+
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Services/ContainerInstallService.swift:253:84: warning: main actor-isolated static property 'signingTeamID' can not be referenced from a nonisolated autoclosure; this is an error in the Swift 6 language mode
+ 71 |     /// Containerization"). The certificate chain alone only proves Apple issued a Developer
+ 72 |     /// ID; the team is what proves the package is Apple's own.
+ 73 |     static let signingTeamID = "UPBK2H6LZM"
+    |                `- note: static property declared here
+ 74 | 
+ 75 |     /// The commands the manual route runs, from a download of `packageName`.
+    :
+251 |         // The leaf certificate is the first in the chain.
+252 |         guard let leaf = lines.first(where: { $0.hasPrefix("1. ") }) else { return false }
+253 |         return leaf.hasPrefix("1. Developer ID Installer: ") && leaf.hasSuffix("(\(signingTeamID))")
+    |                                                                                    `- warning: main actor-isolated static property 'signingTeamID' can not be referenced from a nonisolated autoclosure; this is an error in the Swift 6 language mode
+254 |     }
+255 | 
+
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Services/ContainerListService.swift:484:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+482 |         }
+483 | 
+484 |         return try await Task.detached {
+    |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+485 |             let data = containerLog.readDataToEndOfFile()
+486 |             guard let fullText = String(data: data, encoding: .utf8) else {
+
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Services/ImageBuildService.swift:205:45: warning: reference to captured var 'self' in concurrently-executing code; this is an error in the Swift 6 language mode [#SendableClosureCaptures]
+203 |             do {
+204 |                 let result = try await runner.runStreaming(program: program, arguments: arguments) { line in
+205 |                     Task { @MainActor [weak self] in
+    |                                             `- warning: reference to captured var 'self' in concurrently-executing code; this is an error in the Swift 6 language mode [#SendableClosureCaptures]
+206 |                         self?.append(line, to: buildID)
+207 |                     }
+
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Services/MachineService.swift:142:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+140 |         guard let handle else { return [] }
+141 | 
+142 |         return try await Task.detached {
+    |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+143 |             let data = handle.readDataToEndOfFile()
+144 |             guard let text = String(data: data, encoding: .utf8) else { return [String]() }
+
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Services/RunCommandModel.swift:29:155: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+25 |         phase = .running
+26 |         let backend = self.backend
+27 |         task = Task {
+   |                     |- note: 'self' implicitly strongly captured here
+   |                     `- note: add 'self' as a capture list item to silence
+28 |             do {
+29 |                 let status = try await backend.runProcess(in: containerID, command: arguments, environment: [], workingDirectory: nil, user: nil) { [weak self] line in
+   |                                                                                                                                                           |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+   |                                                                                                                                                           `- note: explicitly assign the capture list item to silence
+30 |                     Task { @MainActor [weak self] in
+31 |                         guard let self, self.generation == runID else { return }
+
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Views/Features/Stats/StatsChartKit.swift:140:29: warning: main actor-isolated static property 'idleInterval' can not be referenced from a nonisolated context; this is an error in the Swift 6 language mode
+136 | /// Based on the idle cadence and scaled to the window so downsampled long views don't read
+137 | /// every (naturally wide) step as a gap.
+138 | func statsGapThreshold(windowSeconds: Double) -> Double {
+    |      `- note: add '@MainActor' to make global function 'statsGapThreshold(windowSeconds:)' part of global actor 'MainActor'
+139 |     let expectedSpacing = windowSeconds / Double(chartPointTarget)
+140 |     return max(StatsService.idleInterval * 2.5, expectedSpacing * 2.5)
+    |                             `- warning: main actor-isolated static property 'idleInterval' can not be referenced from a nonisolated context; this is an error in the Swift 6 language mode
+141 | }
+142 | 
+
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Services/StatsService.swift:134:16: note: static property declared here
+132 |     /// Slow always-on cadence when nothing is on screen — keeps 1h/24h history filling
+133 |     /// without hammering XPC for charts nobody is watching.
+134 |     static let idleInterval: TimeInterval = 10.0
+    |                `- note: static property declared here
+135 | 
+136 |     /// Start always-on background sampling and restore persisted history. Called once at
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[#SendableClosureCaptures]: <https://docs.swift.org/compiler/documentation/diagnostics/sendable-closure-captures>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard.xcodeproj: warning: The Copy Bundle Resources build phase contains this target's Info.plist file '/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/Orchard/Info.plist'. (in target 'Orchard' from project 'Orchard')
+/Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/build/ContainerDesk.app: replacing existing signature
+Built unsigned arm64 Release app: /Users/jackygao/Desktop/saas/appleDocker/.scratch/containerdesk-build/worktrees/t-e1-release-candidate/build/ContainerDesk.app

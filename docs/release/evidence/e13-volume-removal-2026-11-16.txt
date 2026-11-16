@@ -1,0 +1,18 @@
+E-13 — approved removal of the temporary Compose volume
+Date: 2026-11-16
+Environment: ContainerDesk 1.0.0 on macOS 27.2.1 (26B131), Apple container 1.7.1.
+
+ContainerDesk Compose Projects showed `web-db` as `Not created` after Down. Its two service containers and network were not created; the named volume remained at 79.8 MB and `Not mounted`.
+
+The Volumes detail identified `web-db_pgdata`, Compose project `web-db`, labels `com.compose.project=web-db` and `com.compose.volume=pgdata`, and no container mounts. Delete opened this alert:
+
+    Delete web-db_pgdata? This permanently deletes the data in: web-db_pgdata (Compose project: web-db).
+
+Buttons: Cancel, Delete. The user explicitly approved deletion after seeing the permanent-data-loss warning. Delete was activated. ContainerDesk then showed the Volumes empty state:
+
+    No Volumes
+    Create a volume, or run a container with one
+
+The sidebar showed Volumes with no count. The confirmation screenshot captured before the final action is [e13-remove-volume-confirmation-2026-11-16.png](../../../../../../../.scratch/containerdesk-build/worktrees/t-d7-docs/docs/release/evidence/e13-remove-volume-confirmation-2026-11-16.png).
+
+The sandboxed `container volume list --format json` command returned `Operation not permitted`, so this record does not claim CLI verification. No other volume or user data was selected for deletion. The temporary `web-db` project remains Down; the Runtime remains installed and running.

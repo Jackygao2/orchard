@@ -1,0 +1,9 @@
+PASS: build script rejects unknown option
+PASS: signed build explains missing local signing config
+PASS: DMG script rejects path-like version
+PASS: DMG script rejects missing app
+PASS: verifier rejects missing disk image
+PASS: install script requires absolute root
+PASS: install script protects existing app
+PASS: unsigned local build uses ad-hoc signing without Hardened Runtime
+PASS: all packaging scripts pass bash -n

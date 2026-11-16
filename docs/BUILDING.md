@@ -42,7 +42,7 @@ The first command runs the `Orchard` unit-test scheme. The packaging script chec
 scripts/build-app.sh
 ```
 
-This runs an arm64 Release archive and writes `build/ContainerDesk.app`. It uses the pinned package cache in `build/SourcePackages` and derived data in `build/DerivedData`. The script ad-hoc signs the app with the hardened runtime so it can be launched locally; it does not produce a Developer ID signature or a notarized app. Re-running the script replaces its own `build/ContainerDesk.xcarchive`, `build/ContainerDesk.app` and export output.
+This runs an arm64 Release archive and writes `build/ContainerDesk.app`. It uses the pinned package cache in `build/SourcePackages` and derived data in `build/DerivedData`. The unsigned local-development artifact is ad-hoc signed without the hardened runtime, because it has no Team ID and cannot load the separately signed Sparkle framework under hardened-runtime library validation. This artifact is for local development only; it is not Developer ID signed, notarized, Gatekeeper-approved or publishable. The signed Developer ID path retains the hardened runtime and signs embedded code with the configured identity. Re-running the script replaces its own `build/ContainerDesk.xcarchive`, `build/ContainerDesk.app` and export output.
 
 ## Create and verify a DMG
 

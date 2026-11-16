@@ -2,14 +2,14 @@
 
 ## Current status
 
-ContainerDesk 1.0 is not ready for public distribution. T-D5 produced and locally exercised an unsigned-development artifact, not a release candidate. The tested DMG reported:
+ContainerDesk 1.0 is not ready for public distribution. T-D5 produced an unsigned-development artifact, not a release candidate. After correcting its local signing mode, the tested DMG reported:
 
 - `arm64`, bundle ID `local.containerdesk`, minimum macOS `26.0`.
-- A valid ad-hoc signature with hardened runtime enabled.
+- A valid ad-hoc signature without hardened runtime. A no-Team-ID local build cannot load the separately signed Sparkle framework under hardened-runtime library validation.
 - Gatekeeper rejected the app; no notarization ticket was stapled.
-- The checksum and disk-image verification passed, and the app launched from a temporary install root.
+- The checksum and disk-image verification passed, and the corrected app launched from a temporary install root and `/Applications`.
 
-The test run was on macOS 27.2.1 with Xcode 27.2. That confirms a local build and unit-test run on this Mac; it does not establish support for macOS 27 or any other OS version. The release support list may name only macOS versions that pass the product acceptance scenarios.
+The build and launch checks were on macOS 27.2.1 with Xcode 27.2. The E-01 first-launch walk is in progress; Runtime authorization and the full setup flow have not completed. These checks do not establish support for macOS 27 or any other OS version. The release support list may name only macOS versions that pass the product acceptance scenarios.
 
 ## Local development artifacts
 
@@ -50,4 +50,4 @@ The README must continue to say there is no public release until these gates are
 6. Complete scenarios E-01…E-20 and publish a release report with artifact names, SHA-256, signing and notarization state, tested OS versions and remaining blockers.
 7. Publish only after the release report contains the required passing evidence and no unresolved public-release gate.
 
-The current unsigned DMG and checksum were generated under the ignored `build/` directory in the T-D5 worktree. They are local development evidence, not repository release assets.
+The current unsigned DMG and checksum were regenerated under the ignored `build/` directory in the T-D5 worktree after correcting its local signing mode. They are local development evidence, not repository release assets.

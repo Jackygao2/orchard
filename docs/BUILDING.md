@@ -34,7 +34,7 @@ xcodebuild test \
 scripts/tests/packaging-scripts-tests.sh
 ```
 
-The first command runs the `Orchard` unit-test scheme. The packaging script checks exercise the packaging scripts' argument and safety guards and run `bash -n` on them. On 2026-11-15, the `Orchard` scheme passed 714 tests in 18 suites on macOS 27.2.1 with Xcode 27.2. This is unit-test evidence; it is not a pass of the release acceptance scenarios or the separate UI test scheme.
+The first command runs the `Orchard` unit-test scheme. The packaging script checks exercise the packaging scripts' argument, signing-mode and safety guards, including the local notarization script's missing-credential path, then run `bash -n` on all five packaging scripts. Current integrated-candidate results are recorded in its [T-E1 evidence](release/evidence/e1-integrated-test-results-2026-11-16.md). Unit or packaging checks are not a pass of the release acceptance scenarios or the separate UI test scheme.
 
 ## Build a local unsigned app
 
@@ -86,3 +86,5 @@ scripts/build-app.sh --signed
 ```
 
 `Config/Signing.xcconfig` is git-ignored. Never commit signing identities, private keys, certificates or notarization credentials. A signed build is not automatically notarized; notarization and publication remain blocked by the open release decisions documented in [docs/RELEASING.md](RELEASING.md). This optional signed path has not been tested in the current environment because no Developer ID identity is configured.
+
+After a signed build and DMG exist, configure a `notarytool` Keychain profile as described in [RELEASING.md](RELEASING.md), then use `scripts/notarize.sh <dmg>` to submit, staple, validate and run strict release verification. The script fails before submission when the signing configuration, Developer ID identity or Keychain profile is missing. Its argument and missing-credential paths are tested; successful signing and notarization still require external credentials and have not run here.

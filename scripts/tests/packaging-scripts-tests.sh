@@ -35,6 +35,12 @@ expect_failure "install script requires absolute root" "Install root must be an 
 
 mkdir -p "$tmp_root/installed/ContainerDesk.app"
 expect_failure "install script protects existing app" "Refusing to overwrite existing app" "$repo_root/scripts/install-and-launch-test.sh" "$tmp_root/fake.dmg" --install-root "$tmp_root/installed"
+expect_failure "notarize script requires a DMG path" "Usage:" "$repo_root/scripts/notarize.sh"
+expect_failure "notarize script rejects a missing DMG" "Disk image not found" "$repo_root/scripts/notarize.sh" "$tmp_root/missing.dmg"
+if [[ ! -f "$repo_root/Config/Signing.xcconfig" ]]; then
+    touch "$tmp_root/unsigned.dmg"
+    expect_failure "notarize script explains missing credentials" "Developer ID credentials are not configured" "$repo_root/scripts/notarize.sh" "$tmp_root/unsigned.dmg"
+fi
 
 # Exercise the public build-script path with a tiny fake archive so the signing
 # mode can be checked without spending time compiling the app.
@@ -80,7 +86,7 @@ if grep -Fq -- "--options runtime" "$codesign_log"; then
 fi
 echo "PASS: unsigned local build uses ad-hoc signing without Hardened Runtime"
 
-for script in build-app.sh make-dmg.sh verify-release.sh install-and-launch-test.sh; do
+for script in build-app.sh make-dmg.sh verify-release.sh install-and-launch-test.sh notarize.sh; do
     bash -n "$repo_root/scripts/$script"
 done
 echo "PASS: all packaging scripts pass bash -n"

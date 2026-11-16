@@ -5,5 +5,8 @@ PASS: DMG script rejects missing app
 PASS: verifier rejects missing disk image
 PASS: install script requires absolute root
 PASS: install script protects existing app
+PASS: notarize script requires a DMG path
+PASS: notarize script rejects a missing DMG
+PASS: notarize script explains missing credentials
 PASS: unsigned local build uses ad-hoc signing without Hardened Runtime
 PASS: all packaging scripts pass bash -n

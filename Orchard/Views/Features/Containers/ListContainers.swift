@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ContainersListView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.openURL) private var openURL
     @EnvironmentObject var containerListService: ContainerListService
     @EnvironmentObject var clusterService: ClusterService
@@ -95,7 +96,10 @@ struct ContainersListView: View {
     }
 
     private func containerRow(for container: Container) -> some View {
-        HStack(spacing: 4) {
+        let isSelected = selectedContainers.contains(container.configuration.id)
+            || selectedContainer == container.configuration.id
+
+        return HStack(spacing: 4) {
             ListItemRow(
                 icon: "cube",
                 iconColor: container.status.lowercased() == "running" ? .green : .secondary,
@@ -103,7 +107,7 @@ struct ContainersListView: View {
                 primaryText: container.configuration.id,
                 secondaryLeftText: networkAddress(for: container) ?? "-",
                 secondaryRightText: hostname(for: container),
-                isSelected: selectedContainers.contains(container.configuration.id),
+                isSelected: isSelected,
                 showSandboxBadge: container.isSandbox,
                 ownerBadge: container.sandboxOwner?.badge,
                 pluginBadge: container.pluginBadgeText
@@ -111,7 +115,7 @@ struct ContainersListView: View {
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 Text(container.uptimeLabel(at: context.date))
                     .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(isSelected && colorScheme == .dark ? Color.white : Color.primary)
                     .frame(width: 66, alignment: .trailing)
                     .accessibilityIdentifier("container-uptime-\(container.configuration.id)")
             }

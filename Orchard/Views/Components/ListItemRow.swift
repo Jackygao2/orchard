@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ListItemRow: View {
+    @Environment(\.colorScheme) private var colorScheme
     /// The height of a row with a secondary line in a plain `List`, cell insets included.
     ///
     /// A list given this as its minimum row height lays a newly inserted row out at its real
@@ -27,6 +28,10 @@ struct ListItemRow: View {
     /// keys Orchard will not honour. Orange rather than accent-coloured: it is a caveat, not a
     /// label.
     let warningBadge: String?
+
+    private var rowTextColor: Color {
+        isSelected && colorScheme == .dark ? .white : .primary
+    }
 
     init(
         icon: String,
@@ -69,7 +74,7 @@ struct ListItemRow: View {
                 HStack(spacing: 5) {
                     Text(primaryText)
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.primary)
+                        .foregroundColor(rowTextColor)
                         .lineLimit(1)
                     if showSandboxBadge {
                         Text("sandbox")
@@ -120,7 +125,7 @@ struct ListItemRow: View {
                             Text(secondaryLeft)
                                 .font(.system(size: 12, weight: .regular))
                                 .fontDesign(.monospaced)
-                                .foregroundColor(.primary)
+                                .foregroundColor(rowTextColor)
                                 .lineLimit(1)
                         }
 
@@ -130,7 +135,7 @@ struct ListItemRow: View {
                             Text(secondaryRight)
                                 .font(.system(size: 12, weight: .regular))
                                 .fontDesign(.monospaced)
-                                .foregroundColor(.primary)
+                                .foregroundColor(rowTextColor)
                                 .lineLimit(1)
                         }
                     }

@@ -126,148 +126,156 @@ struct StatsTableView: View {
             .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(8)
         } else {
-            VStack(spacing: 0) {
-                // Header
-                HStack(spacing: 0) {
-                    if showContainerColumn {
-                        columnHeader(nameColumnTitle, column: .container, alignment: .leading)
-                        columnHeader("CPU", column: .cpu, width: 120)
-                        columnHeader("Memory", column: .memory, width: 150)
-                        columnHeader("Network I/O", column: .network, width: 150)
-                        columnHeader("Block I/O", column: .block, width: 150)
-                        columnHeader("PIDs", column: .pids, width: 70)
-                    } else {
-                        HStack {
-                            columnHeader("CPU", column: .cpu)
-                            columnHeader("Memory", column: .memory)
-                            columnHeader("Network I/O", column: .network)
-                            columnHeader("Block I/O", column: .block)
-                            columnHeader("PIDs", column: .pids)
-                        }
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(Color(NSColor.separatorColor).opacity(0.5))
-
-                Divider()
-
-                // Stats rows
-                ForEach(sortedStats, id: \.id) { stats in
+            ScrollView(.horizontal) {
+                VStack(spacing: 0) {
+                    // Header
                     HStack(spacing: 0) {
                         if showContainerColumn {
-                            // Resource name (clickable)
-                            Button(action: {
-                                if let onSelectRow {
-                                    onSelectRow(stats.id)
-                                } else {
-                                    selectedTab = .containers
-                                    selectedContainer = stats.id
-                                }
-                            }) {
-                                HStack {
-                                    SwiftUI.Image(systemName: rowIcon)
-                                        .foregroundStyle(rowIconColor)
-                                    Text(stats.id)
-                                        .foregroundStyle(.blue)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .buttonStyle(.plain)
-
-                            VStack(alignment: .trailing, spacing: 3) {
-                                cpuValue(for: stats.id)
-                                Sparkline(values: sparklines[stats.id]?.cpu ?? [], color: .blue, maxValue: 100)
-                            }
-                            .frame(width: 120, alignment: .trailing)
-
-                            VStack(alignment: .trailing, spacing: 3) {
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("\(stats.formattedMemoryUsage)")
-                                        .font(.system(.caption, design: .monospaced))
-                                    Text("\(String(format: "%.1f", stats.memoryUsagePercent))%")
-                                        .font(.system(.caption2, design: .monospaced))
-                                        .foregroundStyle(.secondary)
-                                }
-                                Sparkline(values: sparklines[stats.id]?.memory ?? [], color: .purple, maxValue: 100)
-                            }
-                            .frame(width: 150, alignment: .trailing)
-
-                            VStack(alignment: .trailing, spacing: 3) {
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("\u{2193} \(stats.formattedNetworkRx)")
-                                        .font(.system(.caption, design: .monospaced))
-                                    Text("\u{2191} \(stats.formattedNetworkTx)")
-                                        .font(.system(.caption, design: .monospaced))
-                                        .foregroundStyle(.secondary)
-                                }
-                                Sparkline(values: sparklines[stats.id]?.network ?? [], color: .green)
-                            }
-                            .frame(width: 150, alignment: .trailing)
-
-                            VStack(alignment: .trailing, spacing: 3) {
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("R \(stats.formattedBlockRead)")
-                                        .font(.system(.caption, design: .monospaced))
-                                    Text("W \(stats.formattedBlockWrite)")
-                                        .font(.system(.caption, design: .monospaced))
-                                        .foregroundStyle(.secondary)
-                                }
-                                Sparkline(values: sparklines[stats.id]?.disk ?? [], color: .teal)
-                            }
-                            .frame(width: 150, alignment: .trailing)
-
-                            Text("\(stats.numProcesses)")
-                                .font(.system(.body, design: .monospaced))
-                                .frame(width: 70, alignment: .trailing)
+                            columnHeader(nameColumnTitle, column: .container, width: 160, alignment: .leading)
+                            columnHeader("CPU", column: .cpu, width: 120)
+                            columnHeader("Memory", column: .memory, width: 150)
+                            columnHeader("Network I/O", column: .network, width: 150)
+                            columnHeader("Block I/O", column: .block, width: 150)
+                            columnHeader("PIDs", column: .pids, width: 70)
                         } else {
                             HStack {
-                                cpuValue(for: stats.id)
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
+                                columnHeader("CPU", column: .cpu)
+                                columnHeader("Memory", column: .memory)
+                                columnHeader("Network I/O", column: .network)
+                                columnHeader("Block I/O", column: .block)
+                                columnHeader("PIDs", column: .pids)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(NSColor.separatorColor).opacity(0.5))
 
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("\(stats.formattedMemoryUsage)")
-                                        .font(.system(.caption, design: .monospaced))
-                                    Text("\(String(format: "%.1f", stats.memoryUsagePercent))%")
-                                        .font(.system(.caption2, design: .monospaced))
-                                        .foregroundStyle(.secondary)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .trailing)
+                    Divider()
 
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("\u{2193} \(stats.formattedNetworkRx)")
-                                        .font(.system(.caption, design: .monospaced))
-                                    Text("\u{2191} \(stats.formattedNetworkTx)")
-                                        .font(.system(.caption, design: .monospaced))
-                                        .foregroundStyle(.secondary)
+                    // Stats rows
+                    ForEach(sortedStats, id: \.id) { stats in
+                        HStack(spacing: 0) {
+                            if showContainerColumn {
+                                // Resource name (clickable)
+                                Button(action: {
+                                    if let onSelectRow {
+                                        onSelectRow(stats.id)
+                                    } else {
+                                        selectedTab = .containers
+                                        selectedContainer = stats.id
+                                    }
+                                }) {
+                                    HStack {
+                                        SwiftUI.Image(systemName: rowIcon)
+                                            .foregroundStyle(rowIconColor)
+                                        Text(stats.id)
+                                            .lineLimit(1)
+                                            .truncationMode(.middle)
+                                            .foregroundStyle(.blue)
+                                    }
+                                    .frame(width: 160, alignment: .leading)
                                 }
-                                .frame(maxWidth: .infinity, alignment: .trailing)
+                                .buttonStyle(.plain)
 
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("R \(stats.formattedBlockRead)")
-                                        .font(.system(.caption, design: .monospaced))
-                                    Text("W \(stats.formattedBlockWrite)")
-                                        .font(.system(.caption, design: .monospaced))
-                                        .foregroundStyle(.secondary)
+                                VStack(alignment: .trailing, spacing: 3) {
+                                    cpuValue(for: stats.id)
+                                    Sparkline(values: sparklines[stats.id]?.cpu ?? [], color: .blue, maxValue: 100)
                                 }
-                                .frame(maxWidth: .infinity, alignment: .trailing)
+                                .frame(width: 120, alignment: .trailing)
+
+                                VStack(alignment: .trailing, spacing: 3) {
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text("\(stats.formattedMemoryUsage)")
+                                            .font(.system(.caption, design: .monospaced))
+                                        Text("\(String(format: "%.1f", stats.memoryUsagePercent))%")
+                                            .font(.system(.caption2, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Sparkline(values: sparklines[stats.id]?.memory ?? [], color: .purple, maxValue: 100)
+                                }
+                                .frame(width: 150, alignment: .trailing)
+
+                                VStack(alignment: .trailing, spacing: 3) {
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text("\u{2193} \(stats.formattedNetworkRx)")
+                                            .font(.system(.caption, design: .monospaced))
+                                        Text("\u{2191} \(stats.formattedNetworkTx)")
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Sparkline(values: sparklines[stats.id]?.network ?? [], color: .green)
+                                }
+                                .frame(width: 150, alignment: .trailing)
+
+                                VStack(alignment: .trailing, spacing: 3) {
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text("R \(stats.formattedBlockRead)")
+                                            .font(.system(.caption, design: .monospaced))
+                                        Text("W \(stats.formattedBlockWrite)")
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Sparkline(values: sparklines[stats.id]?.disk ?? [], color: .teal)
+                                }
+                                .frame(width: 150, alignment: .trailing)
 
                                 Text("\(stats.numProcesses)")
                                     .font(.system(.body, design: .monospaced))
+                                    .frame(width: 70, alignment: .trailing)
+                            } else {
+                                HStack {
+                                    cpuValue(for: stats.id)
+                                        .frame(maxWidth: .infinity, alignment: .trailing)
+
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text("\(stats.formattedMemoryUsage)")
+                                            .font(.system(.caption, design: .monospaced))
+                                        Text("\(String(format: "%.1f", stats.memoryUsagePercent))%")
+                                            .font(.system(.caption2, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                    }
                                     .frame(maxWidth: .infinity, alignment: .trailing)
+
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text("\u{2193} \(stats.formattedNetworkRx)")
+                                            .font(.system(.caption, design: .monospaced))
+                                        Text("\u{2191} \(stats.formattedNetworkTx)")
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text("R \(stats.formattedBlockRead)")
+                                            .font(.system(.caption, design: .monospaced))
+                                        Text("W \(stats.formattedBlockWrite)")
+                                            .font(.system(.caption, design: .monospaced))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .trailing)
+
+                                    Text("\(stats.numProcesses)")
+                                        .font(.system(.body, design: .monospaced))
+                                        .frame(maxWidth: .infinity, alignment: .trailing)
+                                }
                             }
                         }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(Color.clear)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .background(Color.clear)
 
-                    if stats.id != sortedStats.last?.id {
-                        Divider()
-                            .padding(.leading, 12)
+                        if stats.id != sortedStats.last?.id {
+                            Divider()
+                                .padding(.leading, 12)
+                        }
                     }
                 }
+                .frame(minWidth: showContainerColumn ? 824 : 600, alignment: .leading)
             }
+            .accessibilityLabel("\(nameColumnTitle) statistics table")
             .background(Color(NSColor.controlBackgroundColor))
             .cornerRadius(8)
         }

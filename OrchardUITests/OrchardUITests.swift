@@ -80,7 +80,36 @@ final class OrchardUITests: XCTestCase {
             app.typeKey(key, modifierFlags: .command)
             XCTAssertTrue(app.descendants(matching: .any)[identifier].waitForExistence(timeout: 10),
                           "Command-\(key) did not open \(identifier)")
+            if key == "1" {
+                let title = app.staticTexts["overview-content"]
+                XCTAssertTrue(title.waitForExistence(timeout: 10))
+                XCTAssertTrue(title.isHittable, "The Overview title should be visible and actionable to accessibility tools")
+                XCTAssertGreaterThanOrEqual(title.frame.minY, app.toolbars.firstMatch.frame.maxY,
+                                            "The Overview title should be below the window toolbar")
+            }
         }
+    }
+
+    @MainActor
+    func testOverviewTablesStayReadableInWindowedLayout() throws {
+        let app = launchedApp()
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["overview-content"].waitForExistence(timeout: 10))
+        let diskUsage = app.scrollViews["System disk usage"]
+        XCTAssertTrue(diskUsage.waitForExistence(timeout: 20))
+        let reclaimable = app.staticTexts["Reclaimable"]
+        XCTAssertTrue(reclaimable.exists)
+        for _ in 0..<5 where !diskUsage.frame.contains(reclaimable.frame) {
+            diskUsage.swipeLeft()
+        }
+        XCTAssertTrue(diskUsage.frame.contains(reclaimable.frame), "The last disk tile should be reachable by horizontal scrolling")
+
+        let table = app.scrollViews["Container statistics table"]
+        XCTAssertTrue(table.waitForExistence(timeout: 20))
+        let containerHeader = table.buttons["stats-sort-container"]
+        XCTAssertTrue(containerHeader.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(containerHeader.frame.width, 55,
+                             "The Overview table's container column should not collapse into vertical text")
     }
 
     @MainActor
@@ -221,9 +250,24 @@ final class OrchardUITests: XCTestCase {
         let reference = app.staticTexts.matching(NSPredicate(format: "value CONTAINS %@", "docker.io/library/uitest-nginx")).firstMatch
         XCTAssertTrue(reference.waitForExistence(timeout: 10))
         XCTAssertGreaterThan(reference.frame.width, 20, "Image reference should not collapse to a one-point column")
+        let title = app.staticTexts["image-detail-title"]
+        XCTAssertTrue(title.exists)
+        XCTAssertGreaterThanOrEqual(title.frame.minY, app.toolbars.firstMatch.frame.maxY,
+                                    "The image detail title should be below the window toolbar")
         let hostname = app.staticTexts["Hostname"].firstMatch
         XCTAssertTrue(hostname.waitForExistence(timeout: 10))
         XCTAssertGreaterThan(hostname.frame.width, 20, "The container table should retain readable columns")
+    }
+
+    @MainActor
+    func testNetworkDetailTitleClearsWindowToolbar() throws {
+        let app = launchedApp()
+        app.typeKey("6", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["search-networks"].waitForExistence(timeout: 10))
+        let title = app.staticTexts["network-detail-title"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        XCTAssertGreaterThanOrEqual(title.frame.minY, app.toolbars.firstMatch.frame.maxY,
+                                    "The network detail title should be below the window toolbar")
     }
 
     @MainActor
@@ -377,8 +421,18 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(registries.waitForExistence(timeout: 10))
         registries.click()
         XCTAssertTrue(app.windows["Registries"].waitForExistence(timeout: 10))
-        app.buttons["System Logs"].click()
-        XCTAssertTrue(app.windows["System Logs"].waitForExistence(timeout: 10))
+
+        // System Logs is a main-window destination, not a Settings pane.
+        app.typeKey(",", modifierFlags: .command)
+        let advanced = app.buttons["sidebar-advanced"]
+        XCTAssertTrue(advanced.waitForExistence(timeout: 10))
+        if (advanced.value as? String) == "Collapsed" {
+            advanced.click()
+        }
+        let systemLogs = app.buttons["sidebar-systemLogs"]
+        XCTAssertTrue(systemLogs.waitForExistence(timeout: 10))
+        systemLogs.click()
+        XCTAssertTrue(app.staticTexts["Coming Soon"].waitForExistence(timeout: 10))
     }
 
     /// The "#54 class" of bug: the app is up but everything is broken/empty — invisible to
@@ -601,6 +655,9 @@ final class OrchardUITests: XCTestCase {
         app.staticTexts["uitest-db"].firstMatch.click()
         let edit = app.buttons["Edit Configuration"]
         XCTAssertTrue(edit.waitForExistence(timeout: 10))
+        let actions = app.scrollViews["Container actions"]
+        XCTAssertTrue(actions.waitForExistence(timeout: 10))
+        XCTAssertTrue(actions.frame.intersects(edit.frame), "Edit Configuration should be visible in the container actions strip")
         edit.click()
         let sheet = app.sheets.firstMatch
         XCTAssertTrue(sheet.waitForExistence(timeout: 10))
@@ -672,6 +729,17 @@ final class OrchardUITests: XCTestCase {
         add.click()
         let dryRun = app.buttons["compose-dry-run"]
         XCTAssertTrue(dryRun.waitForExistence(timeout: 20))
+        let actions = app.scrollViews["Compose project actions"]
+        XCTAssertTrue(actions.waitForExistence(timeout: 10))
+        if !actions.frame.contains(dryRun.frame) {
+            let start = actions.coordinate(withNormalizedOffset: CGVector(dx: 0.85, dy: 0.5))
+            let end = actions.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.5))
+            start.press(forDuration: 0.1, thenDragTo: end)
+        }
+        XCTAssertTrue(
+            dryRun.isHittable,
+            "Dry Run should be reachable from the Compose project actions strip after scrolling; strip=\(actions.frame), button=\(dryRun.frame)"
+        )
         dryRun.click()
         XCTAssertTrue(app.descendants(matching: .any)["compose-plan-operation-0"].waitForExistence(timeout: 20))
         app.buttons["Done"].click()
@@ -692,6 +760,7 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(remove.waitForExistence(timeout: 20))
         for _ in 0..<20 where !remove.isEnabled { sleep(1) }
         XCTAssertTrue(remove.isEnabled)
+        XCTAssertTrue(remove.isHittable, "Remove Volumes should be reachable in the Compose project actions strip")
         remove.click()
         let cancel = app.buttons["Cancel"]
         XCTAssertTrue(cancel.waitForExistence(timeout: 20))

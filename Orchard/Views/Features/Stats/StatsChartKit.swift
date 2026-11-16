@@ -220,7 +220,7 @@ struct MetricValueDetail: View {
             if let percent { ProgressView(value: min(1, max(0, percent / 100))).tint(tint) }
             Text(primary).metricValueText()
             if let secondary {
-                Text(secondary).font(.caption).foregroundColor(.secondary).fontDesign(.monospaced)
+                Text(secondary).font(.caption).foregroundColor(.primary).fontDesign(.monospaced)
             }
         }
     }

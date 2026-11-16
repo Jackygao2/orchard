@@ -38,7 +38,8 @@ struct NetworkTable: View {
                                 SwiftUI.Image(systemName: "arrow.down.left.arrow.up.right")
                                     .foregroundStyle(.green)
                                 Text(network.id)
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(.primary)
+                                    .underline()
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }

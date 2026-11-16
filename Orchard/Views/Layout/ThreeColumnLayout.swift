@@ -639,6 +639,7 @@ struct TabColumnView: View {
                    sidebarRow(for: .clusters)
                    sidebarRow(for: .models)
                    sidebarRow(for: .sandboxes)
+                   sidebarRow(for: .systemLogs)
                }
            }
            Button { openSettings() } label: { Label("Settings", systemImage: "gearshape") }

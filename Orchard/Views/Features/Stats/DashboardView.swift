@@ -7,6 +7,7 @@ struct DashboardView: View {
     @EnvironmentObject var imageService: ImageService
     @EnvironmentObject var composeService: ComposeService
     @EnvironmentObject var volumeService: VolumeService
+    @Environment(\.isWindowFullScreen) private var isWindowFullScreen
     @Binding var selectedTab: TabSelection
     @Binding var selectedContainer: String?
 
@@ -72,11 +73,12 @@ struct DashboardView: View {
                 Text("Overview")
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
 
                 Spacer()
             }
             .padding(.horizontal, 16)
-            .padding(.top, 20)
+            .padding(.top, isWindowFullScreen ? 20 : 52)
             .padding(.bottom, 12)
 
             Divider()
@@ -286,43 +288,50 @@ struct SystemDiskUsageView: View {
         let containers = breakdown?.containers ?? usage?.containers
         let images = breakdown?.images ?? usage?.images
         let volumes = breakdown?.volumes ?? usage?.volumes
-        return HStack(spacing: 12) {
-            statTile(icon: "shippingbox", title: "Containers",
-                     value: containers?.formattedSize ?? "--",
-                     detail: containers.map { "\($0.active)/\($0.total)" } ?? "--")
-            statTile(icon: "square.stack.3d.up", title: "Images",
-                     value: images?.formattedSize ?? "--",
-                     detail: images.map { "\($0.active)/\($0.total)" } ?? "--")
-            Button { selectedTab = .volumes } label: {
-                statTile(icon: TabSelection.volumes.icon, title: "Volumes",
-                         value: volumes?.formattedSize ?? "--",
-                         detail: volumes.map { "\($0.active)/\($0.total)" } ?? "--")
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .help("Show volumes")
-            .accessibilityIdentifier("dashboard-volumes")
-            statTile(icon: "gearshape", title: "System",
-                     value: breakdown.map { Self.bytes($0.systemSize) } ?? "--",
-                     detail: breakdown.map(Self.systemDetail) ?? "--")
-                .help("The image builder and the images the runtime needs to start containers. Free Up Space leaves these alone.")
-            statTile(icon: "trash", title: "Reclaimable",
-                     value: breakdown.map { Self.bytes($0.reclaimable) } ?? "--",
-                     valueColor: .orange) {
-                Button("Free Up Space...") {
-                    // Before presenting, so the sheet's first frame isn't last time's list.
-                    diskPurgeService.reset()
-                    showFreeUpSpace = true
+        return ScrollView(.horizontal) {
+            HStack(spacing: 12) {
+                statTile(icon: "shippingbox", title: "Containers",
+                         value: containers?.formattedSize ?? "--",
+                         detail: containers.map { "\($0.active)/\($0.total)" } ?? "--")
+                    .frame(width: 160)
+                statTile(icon: "square.stack.3d.up", title: "Images",
+                         value: images?.formattedSize ?? "--",
+                         detail: images.map { "\($0.active)/\($0.total)" } ?? "--")
+                    .frame(width: 160)
+                Button { selectedTab = .volumes } label: {
+                    statTile(icon: TabSelection.volumes.icon, title: "Volumes",
+                             value: volumes?.formattedSize ?? "--",
+                             detail: volumes.map { "\($0.active)/\($0.total)" } ?? "--")
+                        .contentShape(Rectangle())
+                        .frame(width: 160)
                 }
-                .buttonStyle(.link)
-                // No usage means the runtime isn't answering, so there's nothing to list.
-                .disabled(usage == nil)
-                .help("Remove images, stopped containers and volumes that aren't in use")
-                .accessibilityIdentifier("free-up-space")
+                .buttonStyle(.plain)
+                .help("Show volumes")
+                .accessibilityIdentifier("dashboard-volumes")
+                statTile(icon: "gearshape", title: "System",
+                         value: breakdown.map { Self.bytes($0.systemSize) } ?? "--",
+                         detail: breakdown.map(Self.systemDetail) ?? "--")
+                    .frame(width: 160)
+                    .help("The image builder and the images the runtime needs to start containers. Free Up Space leaves these alone.")
+                statTile(icon: "trash", title: "Reclaimable",
+                         value: breakdown.map { Self.bytes($0.reclaimable) } ?? "--",
+                         valueColor: .orange) {
+                    Button("Free Up Space...") {
+                        // Before presenting, so the sheet's first frame isn't last time's list.
+                        diskPurgeService.reset()
+                        showFreeUpSpace = true
+                    }
+                    .buttonStyle(.link)
+                    // No usage means the runtime isn't answering, so there's nothing to list.
+                    .disabled(usage == nil)
+                    .help("Remove images, stopped containers and volumes that aren't in use")
+                    .accessibilityIdentifier("free-up-space")
+                }
+                    .frame(width: 160)
+                    .help("What Free Up Space can remove with every section switched on. This is less than container system df reports, since that also counts the builder, system images, and stopped machines, compose services and sandboxes.")
             }
-                .help("What Free Up Space can remove with every section switched on. This is less than container system df reports, since that also counts the builder, system images, and stopped machines, compose services and sandboxes.")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityLabel("System disk usage")
     }
 
     private static func bytes(_ count: Int64) -> String {
@@ -342,7 +351,7 @@ struct SystemDiskUsageView: View {
 
     private func statTile(icon: String, title: String, value: String, detail: String, valueColor: Color = .primary) -> some View {
         statTile(icon: icon, title: title, value: value, valueColor: valueColor) {
-            Text(detail).foregroundColor(.secondary)
+            Text(detail).foregroundColor(.primary)
         }
     }
 

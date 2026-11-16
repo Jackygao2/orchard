@@ -44,7 +44,7 @@ enum ResourceTable {
     static func statusCell(_ note: Note?) -> some View {
         Text(note?.text ?? "")
             .font(.caption)
-            .foregroundStyle(note?.isError == true ? Color.red : Color.secondary)
+            .foregroundStyle(note?.isError == true ? Color.red : Color.primary)
             .lineLimit(1)
             .frame(width: statusWidth, alignment: .leading)
     }
@@ -53,16 +53,16 @@ enum ResourceTable {
     static func absentCell() -> some View {
         Text("-")
             .font(.system(.body, design: .monospaced))
-            .foregroundStyle(.tertiary)
+            .foregroundStyle(.primary)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     static func emptyState(_ message: String, icon: String) -> some View {
         HStack {
             SwiftUI.Image(systemName: icon)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
             Text(message)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)

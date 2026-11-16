@@ -219,7 +219,7 @@ struct ContainerDetailHeader: View {
     }
 
     var body: some View {
-        HStack {
+        VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 8) {
                     Text(containerName)
@@ -248,14 +248,13 @@ struct ContainerDetailHeader: View {
                 Text(imageReference)
                     .font(.subheadline)
                     .fontDesign(.monospaced)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.primary)
             }
             .frame(minWidth: 120, alignment: .leading)
-            Spacer()
 
             // Action buttons
             ScrollView(.horizontal) {
-                HStack(spacing: 12) {
+                HStack(spacing: 8) {
                     if isRunning {
                         // Container is running - show stop button and terminal options
                         Button("Stop") {
@@ -389,6 +388,7 @@ struct ContainerDetailHeader: View {
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityLabel("Container actions")
         }
         .padding(.horizontal, 16)

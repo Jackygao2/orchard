@@ -87,7 +87,7 @@ else
         exit 1
     fi
     ditto "$archived_app" "$app_path"
-    codesign --force --deep --sign - --options runtime --entitlements "$repo_root/Orchard/Orchard.entitlements" "$app_path"
+    codesign --force --deep --sign - --entitlements "$repo_root/Orchard/Orchard.entitlements" "$app_path"
 fi
 
 if [[ ! -x "$app_path/Contents/MacOS/ContainerDesk" ]]; then

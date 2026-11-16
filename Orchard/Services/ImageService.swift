@@ -43,6 +43,15 @@ func canonicalImageReference(_ ref: String) -> String {
     return "docker.io/library/\(trimmed)"
 }
 
+func imagePullFailureMessage(for details: String) -> String {
+    let normalized = details.lowercased()
+    if normalized.contains("401") || normalized.contains("403") ||
+        normalized.contains("unauthorized") || normalized.contains("forbidden") {
+        return "The registry refused this image. Check its name and repository access, then retry."
+    }
+    return details
+}
+
 /// Resolves a user-entered image reference for running a container. A locally
 /// stored image wins and is returned exactly as the store names it - a locally
 /// built tag like "mono2:latest" must not be rewritten to
@@ -376,7 +385,10 @@ final class ImageService: ObservableObject {
         } catch {
             let errorMsg = error.localizedDescription
             pullProgress[cleanImageName] = ImagePullProgress(
-                imageName: cleanImageName, status: .failed(errorMsg), progress: 0.0, message: "Pull failed: \(errorMsg)"
+                imageName: cleanImageName,
+                status: .failed(errorMsg),
+                progress: 0.0,
+                message: "Pull failed: \(imagePullFailureMessage(for: errorMsg))"
             )
             // The progress row remains visible for recovery, including while search is open.
         }

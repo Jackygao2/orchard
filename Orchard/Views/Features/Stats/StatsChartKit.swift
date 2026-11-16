@@ -218,7 +218,10 @@ struct MetricValueDetail: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let percent { ProgressView(value: min(1, max(0, percent / 100))).tint(tint) }
-            Text(primary).metricValueText()
+            Text(primary)
+                .metricValueText()
+                .accessibilityLabel("Current value: \(primary)")
+                .accessibilityIdentifier("metric-current-value")
             if let secondary {
                 Text(secondary).font(.title3).foregroundColor(.primary).fontDesign(.monospaced)
             }
@@ -360,6 +363,11 @@ struct Sparkline: View {
             .chartYAxis(.hidden)
             .chartLegend(.hidden)
             .frame(height: 18)
+            // Current numeric values are available in adjacent table cells; the tiny
+            // sparkline is decorative and its Swift Charts internals are not useful to
+            // VoiceOver.
+            .accessibilityIdentifier("stats-table-sparkline")
+            .accessibilityHidden(true)
         }
     }
 }
@@ -384,6 +392,10 @@ struct MetricChart: View {
     @State private var selectedX: Double?
 
     private var uniqueXs: [Double] { Array(Set(series.map(\.x))).sorted() }
+
+    private var accessibilityIdentifier: String {
+        "metric-chart-\(palette.first?.0 ?? "unknown")"
+    }
 
     private func nearestX(to x: Double) -> Double? {
         uniqueXs.min(by: { abs($0 - x) < abs($1 - x) })
@@ -479,6 +491,11 @@ struct MetricChart: View {
             }
         }
         .frame(height: 140)
+        // The adjacent metric details expose the current values as high-contrast text.
+        // Chart axes and marks are visual history, not actionable controls, and expose
+        // unusable internal roles in the macOS accessibility tree.
+        .accessibilityIdentifier(accessibilityIdentifier)
+        .accessibilityHidden(true)
     }
 
     private func tooltip(at x: Double) -> some View {

@@ -113,6 +113,28 @@ final class OrchardUITests: XCTestCase {
     }
 
     @MainActor
+    func testSystemChartValuesRemainAvailableWhenDecorativeChartsAreHidden() throws {
+        let app = launchedApp(extraArguments: ["--uitest-seed-stats"])
+        app.typeKey("1", modifierFlags: .command)
+
+        XCTAssertTrue(app.staticTexts["CPU"].waitForExistence(timeout: 15), "The seeded system chart should be visible")
+        let currentValue = app.staticTexts["metric-current-value"]
+        XCTAssertTrue(currentValue.waitForExistence(timeout: 10), "The current CPU value should remain available to VoiceOver")
+        let chartGroup = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label == %@", "System resource charts")
+        ).firstMatch
+        XCTAssertTrue(chartGroup.exists, "System resource charts should have a useful accessible name")
+        let sidebarGroup = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label == %@", "Navigation sidebar")
+        ).firstMatch
+        XCTAssertTrue(sidebarGroup.exists, "The navigation sidebar should have a useful accessible name")
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "stats-table-sparkline").count, 0,
+                       "Decorative table sparklines should not duplicate accessible numeric values")
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "metric-chart-CPU").count, 0,
+                       "Visual-only CPU chart marks should not expose unknown roles")
+    }
+
+    @MainActor
     func testPrimarySidebarHasAccessibilityActions() throws {
         let app = launchedApp()
         app.typeKey("1", modifierFlags: .command)
@@ -865,6 +887,9 @@ final class OrchardUITests: XCTestCase {
         field.click()
         field.typeText("nginx:latest")
         app.buttons["Pull"].click()
+        XCTAssertTrue(app.staticTexts[
+            "Pull failed: The registry refused this image. Check its name and repository access, then retry."
+        ].waitForExistence(timeout: 10))
         let retry = app.sheets.firstMatch.buttons["image-pull-retry"]
         XCTAssertTrue(retry.waitForExistence(timeout: 10))
         retry.click()

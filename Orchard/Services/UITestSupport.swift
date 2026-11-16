@@ -3,6 +3,7 @@ import Foundation
 /// Launch argument that makes the app wire its services to an in-memory stub backend seeded
 /// with fixtures - so the XCUITest smoke suite runs without a real `container` daemon.
 let uiTestMockBackendArgument = "--uitest-mock-backend"
+let uiTestSeedStatsArgument = "--uitest-seed-stats"
 
 /// Launch argument that makes the stub fail `stopContainer`, so the smoke suite can exercise
 /// the error-alert surface (the #54 class: a failed user action must be visible).
@@ -16,6 +17,31 @@ enum UITestSeed {
     static let imageReference = "docker.io/library/uitest-nginx:latest"
     static let networkID = "uitest-net"
     static let machineID = "uitest-machine"
+
+    static func statsHistory(now: Date = Date()) -> [StatsKey: [StatsSample]] {
+        var samples: [StatsSample] = []
+        for index in 0..<3 {
+            let secondsAgo = Double(index - 2)
+            let cpuPercent = Double(25 + index * 5)
+            let memoryBytes = (128 + index * 8) * 1_048_576
+            let networkRxPerSec = Double(1 + index) * 1_048_576
+            let networkTxPerSec = Double(index) * 524_288
+            let blockReadPerSec = Double(index) * 1024
+            let blockWritePerSec = Double(index) * 512
+            samples.append(StatsSample(
+                timestamp: now.addingTimeInterval(secondsAgo),
+                cpuPercent: cpuPercent,
+                memoryBytes: memoryBytes,
+                memoryLimitBytes: 1_073_741_824,
+                networkRxPerSec: networkRxPerSec,
+                networkTxPerSec: networkTxPerSec,
+                blockReadPerSec: blockReadPerSec,
+                blockWritePerSec: blockWritePerSec,
+                pids: 3
+            ))
+        }
+        return [StatsKey(id: containerID): samples]
+    }
 }
 
 #if DEBUG
@@ -162,7 +188,9 @@ struct UITestBackend: ContainerBackend {
     }
     func pullImage(reference: String, onProgress: (@Sendable (ImagePullMetrics) -> Void)?) async throws {
         if ProcessInfo.processInfo.arguments.contains("--uitest-fail-pull") {
-            throw OrchardError.generic("Simulated registry failure")
+            throw OrchardError.generic(
+                "HTTP request to https://registry-1.docker.io/v2/example/manifests/latest failed with response: 401 Unauthorized"
+            )
         }
     }
     func deleteImage(reference: String) async throws {}

@@ -599,6 +599,8 @@ struct TabColumnView: View {
             sidebarList
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Navigation sidebar")
         .opacity(controlActiveState == .inactive ? 0.5 : 1.0)
         .onAppear {
             // Set initial focus when view appears

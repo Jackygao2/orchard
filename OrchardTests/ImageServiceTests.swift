@@ -13,6 +13,11 @@ private func makeImageService(_ backend: MockContainerBackend = MockContainerBac
     return (ImageService(backend: backend, alertCenter: alert), alert)
 }
 
+private struct ImagePullFailure: LocalizedError {
+    let message: String
+    var errorDescription: String? { message }
+}
+
 // MARK: - load
 
 @MainActor
@@ -82,6 +87,23 @@ func imagePullFailureAlerts() async {
         Issue.record("expected .failed pull status, got \(String(describing: service.pullProgress["docker.io/library/nginx:latest"]?.status))")
     }
     #expect(alert.current == nil)
+}
+
+@MainActor
+@Test("Unauthorized image pulls show actionable copy without raw registry errors")
+func imagePullUnauthorizedFailureCopy() async {
+    let backend = MockContainerBackend()
+    backend.pullImageError = ImagePullFailure(
+        message: "HTTP request to https://registry-1.docker.io/v2/example/manifests/latest failed with response: 401 Unauthorized"
+    )
+    let (service, _) = makeImageService(backend)
+
+    await service.pull("example:latest")
+
+    let progress = service.pullProgress["docker.io/library/example:latest"]
+    #expect(progress?.message == "Pull failed: The registry refused this image. Check its name and repository access, then retry.")
+    #expect(progress?.message.contains("401") == false)
+    #expect(progress?.message.contains("registry-1.docker.io") == false)
 }
 
 @MainActor

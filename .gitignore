@@ -4,6 +4,7 @@ Orchard.xcodeproj/project.xcworkspace/xcuserdata/*
 Orchard.xcodeproj/xcuserdata/*
 
 # Build / CI artifacts
+build/
 .spm-cache/
 UITestResults
 TestResults

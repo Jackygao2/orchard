@@ -26,8 +26,8 @@ struct ContainersListView: View {
         VStack(spacing: 0) {
             HStack {
                 Spacer()
-                Text("Uptime").font(.caption).foregroundStyle(.secondary)
-                    .frame(width: 66, alignment: .trailing)
+                Text("Uptime").font(.body).foregroundStyle(.primary)
+                    .frame(width: 90, alignment: .trailing)
             }
             .padding(.horizontal, 12)
             // Container list
@@ -113,10 +113,12 @@ struct ContainersListView: View {
                 pluginBadge: container.pluginBadgeText
             )
             TimelineView(.periodic(from: .now, by: 60)) { context in
-                Text(container.uptimeLabel(at: context.date))
-                    .font(.caption.monospacedDigit())
+                let uptime = container.uptime(at: context.date)
+                Text(uptime == nil ? "Not running" : container.uptimeLabel(at: context.date))
+                    .font(uptime == nil ? .body : .system(size: 18, weight: .semibold, design: .monospaced))
                     .foregroundStyle(isSelected && colorScheme == .dark ? Color.white : Color.primary)
-                    .frame(width: 66, alignment: .trailing)
+                    .lineLimit(1)
+                    .frame(width: 90, alignment: .trailing)
                     .accessibilityIdentifier("container-uptime-\(container.configuration.id)")
             }
         }

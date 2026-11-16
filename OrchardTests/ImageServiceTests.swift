@@ -44,6 +44,15 @@ func imageLoadFailure(_ c: (showLoading: Bool, expectsAlert: Bool)) async {
     #expect(service.isImagesLoading == false)
 }
 
+@MainActor
+@Test("Image size lookup failure has an explicit label")
+func imageSizeFailureTextIsExplicit() {
+    let (service, _) = makeImageService()
+    service.imageSizes["nginx:latest"] = .failed
+
+    #expect(service.sizeText(forReference: "nginx:latest") == "Size unavailable")
+}
+
 // MARK: - pull
 
 @MainActor

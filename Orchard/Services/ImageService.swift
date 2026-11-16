@@ -268,7 +268,7 @@ final class ImageService: ObservableObject {
         case .loading, .none:
             return "…"
         case .failed:
-            return "—"
+            return "Size unavailable"
         }
     }
 

@@ -293,17 +293,17 @@ struct SystemDiskUsageView: View {
                 statTile(icon: "shippingbox", title: "Containers",
                          value: containers?.formattedSize ?? "--",
                          detail: containers.map { "\($0.active)/\($0.total)" } ?? "--")
-                    .frame(width: 160)
+                    .frame(width: 180)
                 statTile(icon: "square.stack.3d.up", title: "Images",
                          value: images?.formattedSize ?? "--",
                          detail: images.map { "\($0.active)/\($0.total)" } ?? "--")
-                    .frame(width: 160)
+                    .frame(width: 180)
                 Button { selectedTab = .volumes } label: {
                     statTile(icon: TabSelection.volumes.icon, title: "Volumes",
                              value: volumes?.formattedSize ?? "--",
                              detail: volumes.map { "\($0.active)/\($0.total)" } ?? "--")
                         .contentShape(Rectangle())
-                        .frame(width: 160)
+                        .frame(width: 180)
                 }
                 .buttonStyle(.plain)
                 .help("Show volumes")
@@ -311,11 +311,10 @@ struct SystemDiskUsageView: View {
                 statTile(icon: "gearshape", title: "System",
                          value: breakdown.map { Self.bytes($0.systemSize) } ?? "--",
                          detail: breakdown.map(Self.systemDetail) ?? "--")
-                    .frame(width: 160)
+                    .frame(width: 180)
                     .help("The image builder and the images the runtime needs to start containers. Free Up Space leaves these alone.")
                 statTile(icon: "trash", title: "Reclaimable",
-                         value: breakdown.map { Self.bytes($0.reclaimable) } ?? "--",
-                         valueColor: .orange) {
+                         value: breakdown.map { Self.bytes($0.reclaimable) } ?? "--") {
                     Button("Free Up Space...") {
                         // Before presenting, so the sheet's first frame isn't last time's list.
                         diskPurgeService.reset()
@@ -327,7 +326,7 @@ struct SystemDiskUsageView: View {
                     .help("Remove images, stopped containers and volumes that aren't in use")
                     .accessibilityIdentifier("free-up-space")
                 }
-                    .frame(width: 160)
+                    .frame(width: 180)
                     .help("What Free Up Space can remove with every section switched on. This is less than container system df reports, since that also counts the builder, system images, and stopped machines, compose services and sandboxes.")
             }
         }
@@ -362,20 +361,19 @@ struct SystemDiskUsageView: View {
         icon: String, title: String, value: String, valueColor: Color = .primary,
         @ViewBuilder detail: () -> Detail
     ) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            SwiftUI.Image(systemName: icon)
-                .font(.title2)
-                .foregroundStyle(.secondary)
-                .frame(width: 26)
-            VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                SwiftUI.Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundStyle(.secondary)
                 Text(title).font(.headline).foregroundColor(.primary)
-                Text(value)
-                    .font(.subheadline).fontWeight(.semibold).fontDesign(.monospaced)
-                    .foregroundColor(valueColor)
-                detail().font(.caption)
             }
-            .lineLimit(1)
-            Spacer(minLength: 0)
+            Text(value)
+                .font(.largeTitle).fontWeight(.semibold).fontDesign(.monospaced)
+                .minimumScaleFactor(0.8)
+                .lineLimit(1)
+                .foregroundColor(valueColor)
+            detail().font(.caption).lineLimit(1)
         }
         .well()
     }

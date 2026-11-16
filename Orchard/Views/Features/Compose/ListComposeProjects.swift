@@ -177,7 +177,7 @@ struct ComposeProjectsListView: View {
                 .font(.headline)
                 .foregroundStyle(.primary)
             Text("Add a compose file, or bring one up from the terminal and it will show here")
-                .font(.caption)
+                .font(.title3)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.primary)
                 .padding(.horizontal, 24)

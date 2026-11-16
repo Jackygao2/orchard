@@ -313,13 +313,62 @@ final class OrchardUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["latest"].waitForExistence(timeout: 10))
         var issues: [String] = []
         try app.performAccessibilityAudit(for: .contrast) { issue in
-            if (issue.element?.value as? String) == "latest" || issue.detailedDescription.contains("for latest") {
-                issues.append(issue.compactDescription)
+            let value = issue.element?.value as? String ?? ""
+            if value == "latest" || value == "Size unavailable" ||
+                issue.detailedDescription.contains("for latest") || issue.detailedDescription.contains("for Size unavailable") {
+                issues.append("\(issue.compactDescription): \(value) \(issue.detailedDescription)")
             }
             // Other contrast findings remain recorded in the ticket.
             return true
         }
         XCTAssertTrue(issues.isEmpty, issues.joined(separator: ", "))
+    }
+
+    @MainActor
+    func testPrimaryScreenValuesPassContrastAudit() throws {
+        let app = launchedApp()
+        app.typeKey("1", modifierFlags: .command)
+        var productIssues: [String] = []
+
+        func auditCurrentScreen(_ name: String, matching terms: [String]) throws {
+            try app.performAccessibilityAudit(for: .contrast) { issue in
+                let value = issue.element?.value as? String ?? ""
+                let evidence = "\(value) \(issue.detailedDescription)"
+                if terms.contains(where: { evidence.contains($0) }) {
+                    let element = issue.element
+                    productIssues.append(
+                        "\(name): \(issue.compactDescription) — \(evidence) " +
+                        "[identifier=\(element?.identifier ?? ""), label=\(element?.label ?? ""), frame=\(element?.frame ?? .zero)]"
+                    )
+                }
+                return true
+            }
+        }
+
+        XCTAssertTrue(app.descendants(matching: .any)["overview-content"].waitForExistence(timeout: 10))
+        let diskUsage = app.scrollViews["System disk usage"]
+        XCTAssertTrue(diskUsage.waitForExistence(timeout: 10))
+        let reclaimable = app.staticTexts["Reclaimable"]
+        for _ in 0..<5 where !diskUsage.frame.contains(reclaimable.frame) {
+            diskUsage.swipeLeft()
+        }
+        XCTAssertTrue(diskUsage.frame.contains(reclaimable.frame), "The audit should include fully visible disk tiles")
+        try auditCurrentScreen("Overview", matching: ["Zero KB", "for --"])
+
+        openContainersTab(app)
+        try auditCurrentScreen("Containers", matching: [
+            "497d 2h", "Not running", "2 cores allocated", "Zero KB allocated", "↓ Zero KB", "↑ Zero KB"
+        ])
+
+        app.typeKey("3", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["search-compose"].waitForExistence(timeout: 10))
+        try auditCurrentScreen("Compose Projects", matching: ["Add a compose file, or bring one up from the terminal"])
+
+        app.typeKey("4", modifierFlags: .command)
+        XCTAssertTrue(app.descendants(matching: .any)["search-images"].waitForExistence(timeout: 10))
+        try auditCurrentScreen("Images", matching: ["for —"])
+
+        XCTAssertTrue(productIssues.isEmpty, productIssues.joined(separator: "\n"))
     }
 
     @MainActor
@@ -466,7 +515,12 @@ final class OrchardUITests: XCTestCase {
     func testPublishedPortsAndUptimeAreVisible() throws {
         let app = launchedApp()
         openContainersTab(app)
-        XCTAssertTrue(app.descendants(matching: .any)["container-uptime-uitest-web"].waitForExistence(timeout: 10))
+        let uptime = app.descendants(matching: .any)["container-uptime-uitest-web"]
+        XCTAssertTrue(uptime.waitForExistence(timeout: 10))
+        XCTAssertGreaterThanOrEqual(uptime.frame.width, 75, "The uptime value should remain readable in the Containers list")
+        let stoppedUptime = app.descendants(matching: .any)["container-uptime-uitest-db"]
+        XCTAssertTrue(stoppedUptime.waitForExistence(timeout: 10))
+        XCTAssertEqual(stoppedUptime.value as? String, "Not running", "Stopped containers should not use an unexplained dash for uptime")
         XCTAssertTrue(app.descendants(matching: .any)["open-port-127.0.0.1|8080|80|tcp"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["open-port-::1|9090|90|tcp"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["open-port-127.0.0.1|5353|53|udp"].exists)

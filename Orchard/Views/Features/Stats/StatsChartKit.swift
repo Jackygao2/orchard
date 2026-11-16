@@ -193,7 +193,7 @@ func diskChart(_ points: [ChartPoint], windowSeconds: Double, showLegend: Bool =
 /// Shared style for the primary stat values, so every metric reads the same.
 extension View {
     func metricValueText() -> some View {
-        font(.subheadline).fontWeight(.semibold).fontDesign(.monospaced)
+        font(.title3).fontWeight(.semibold).fontDesign(.monospaced).foregroundStyle(.primary)
     }
 
     /// Standard inset "well" used to box each section on the detail page. Uses a translucent
@@ -220,7 +220,7 @@ struct MetricValueDetail: View {
             if let percent { ProgressView(value: min(1, max(0, percent / 100))).tint(tint) }
             Text(primary).metricValueText()
             if let secondary {
-                Text(secondary).font(.caption).foregroundColor(.primary).fontDesign(.monospaced)
+                Text(secondary).font(.title3).foregroundColor(.primary).fontDesign(.monospaced)
             }
         }
     }
